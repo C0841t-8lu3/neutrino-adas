@@ -1,0 +1,6 @@
+Autonomous Vehicle Simulation for QNX 8.0 Neutrino RTOS
+Usage: helloworld [options]
+Options:
+  --steps N          Number of simulation steps (default: 300)
+  --delay MS         Delay in milliseconds per frame (default: 80)
+  --non-interactive  Run without delay
