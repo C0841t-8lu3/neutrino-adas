@@ -1,0 +1,14 @@
+# Rust build artifacts
+target/
+
+# QNX build artifacts
+*.o
+*.dep
+helloworld
+nto/aarch64/o-le/helloworld
+nto/x86_64/o/helloworld
+
+# Logs and scratch files
+*.log
+/tmp/
+.vscode/
