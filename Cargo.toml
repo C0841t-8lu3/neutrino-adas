@@ -1,0 +1,12 @@
+[package]
+name = "qnx_desktop_app"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "qnx_desktop_app"
+path = "desktop_app.rs"
+
+[dependencies]
+tiny_http = "0.12"
+tungstenite = { version = "0.21", default-features = false, features = ["handshake"] }
