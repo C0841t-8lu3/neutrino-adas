@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-11-23T05:58:38.261Z",
+  "route_duration_s": 25,
+  "frames_sampled": 500,
+  "lane_keeping": {
+    "rms_offset_m": 12.739,
+    "mean_offset_m": 11.424,
+    "max_offset_m": 17.869
+  },
+  "steering_vs_curvature": {
+    "mean_steer_error_deg": 28.83,
+    "max_steer_error_deg": 34.38,
+    "mean_heading_error_deg": 75.66
+  },
+  "braking_and_clearance": {
+    "min_obstacle_clearance_m": 0.1,
+    "harsh_braking_events": 2
+  },
+  "safety_incidents": {
+    "collision_count": 3,
+    "near_miss_count": 1
+  },
+  "signal_compliance": {
+    "intersections_encountered": 0,
+    "red_light_violations": 0,
+    "compliance_rate_pct": 100
+  }
+}
