@@ -1,0 +1,47 @@
+#pragma once
+
+#include "adas/Types.hpp"
+#include <string>
+
+namespace adas {
+
+struct LateralOutput {
+    float steer_cmd = 0.0f;
+    float lateral_error = 0.0f;
+    int desired_lane = 1;
+    bool lane_change_active = false;
+    bool hazard = false;
+    bool horn = false;
+    float horn_timer = 0.0f;
+    std::string bsm_status_message;
+};
+
+class LateralController {
+public:
+    explicit LateralController(const AdasConfig& config = AdasConfig());
+    ~LateralController() = default;
+
+    LateralOutput step(
+        const VehicleState& ego,
+        const ForwardScanResult& fwd_scan,
+        const BlindSpotResult& bsm_scan,
+        float dt
+    );
+
+    void reset();
+
+    int getDesiredLane() const { return desired_lane_; }
+    void setDesiredLane(int lane) { desired_lane_ = lane; }
+    bool isLaneChangeActive() const { return lane_change_active_; }
+
+    void setConfig(const AdasConfig& config) { config_ = config; }
+    const AdasConfig& getConfig() const { return config_; }
+
+private:
+    AdasConfig config_;
+    int desired_lane_ = 1;
+    bool lane_change_active_ = false;
+    float lane_change_timer_ = 0.0f;
+};
+
+} // namespace adas

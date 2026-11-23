@@ -10,5 +10,6 @@ nto/x86_64/o/helloworld
 
 # Logs and scratch files
 *.log
+*.7z
 /tmp/
 .vscode/

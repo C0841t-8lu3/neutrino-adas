@@ -176,7 +176,33 @@ python3 run_benchmark.py red_light_results.json 16.0 52.0
 neutrino-adas/
 ├── Makefile                        # Top-level recursive QNX makefile
 ├── common.mk                       # QNX SDP compiler flags and library paths
-├── helloworld.cpp                  # QNX 8.0 L3 ADAS Safety Kernel & Stanley controller
+├── include/                        # Modular C++ ADAS & IPC Headers
+│   ├── adas/
+│   │   ├── Types.hpp               # VehicleState, Obstacle, DriveMode & AdasOutput
+│   │   ├── IPerceptionSensor.hpp   # Abstract sensor interfaces (IForwardScanner, IBlindSpotScanner)
+│   │   ├── ForwardRadar.hpp        # Forward corridor detection & TTC calculation
+│   │   ├── BlindSpotMonitor.hpp    # Dual side-mirror blind-spot radar zones
+│   │   ├── LongitudinalController.hpp # AEB emergency stop, ACC & kinematic stopping
+│   │   ├── LateralController.hpp   # Stanley lateral tracking & lane change state machine
+│   │   ├── SignalActuatorManager.hpp # 3 Hz turn signals, hazards, horn & brake lights
+│   │   └── QnxAdasController.hpp   # Central safety kernel composition orchestrator
+│   ├── ipc/
+│   │   ├── TelemetryCodec.hpp      # Zero-overhead newline-delimited JSON parser/generator
+│   │   └── QnxTcpServer.hpp        # RAII POSIX TCP socket server on port 9090
+│   └── sim/
+│       └── ConsoleSelfTest.hpp     # Standalone terminal verification test harness
+├── src/                            # Modular C++ ADAS Implementations
+│   ├── main.cpp                    # CLI entrypoint (--server / -s / --port / terminal test)
+│   ├── Types.cpp                   # Mode stringification and utility methods
+│   ├── ForwardRadar.cpp            # Forward LiDAR/radar scanning implementation
+│   ├── BlindSpotMonitor.cpp        # Dual side-mirror radar scanning implementation
+│   ├── LongitudinalController.cpp  # AEB / ACC / Cruising control laws
+│   ├── LateralController.cpp       # Nonlinear Stanley tracking & BSM safety interlock
+│   ├── SignalActuatorManager.cpp   # Actuator clocks, hazard overrides & timers
+│   ├── QnxAdasController.cpp       # Real-time L3 ADAS safety kernel orchestrator
+│   ├── TelemetryCodec.cpp          # High-performance wire protocol serialization
+│   ├── QnxTcpServer.cpp            # Multi-client TCP event loop & session handler
+│   └── ConsoleSelfTest.cpp         # 120-step verification scenario with cut-in hazard
 ├── helloworld.use                  # QNX binary metadata & CLI documentation
 ├── desktop_app.rs                  # Native Rust desktop host (HTTP 8088 / WS 8089)
 ├── Cargo.toml                      # Rust dependencies & compilation profile

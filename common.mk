@@ -6,6 +6,9 @@ include $(QCONFIG)
 
 NAME=helloworld
 
+EXTRA_SRCVPATH += $(PROJECT_ROOT)/src
+EXTRA_INCVPATH += $(PROJECT_ROOT)/include
+
 LIBS += socket
 
 #This has to be included last
