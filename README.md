@@ -204,7 +204,13 @@ neutrino-adas/
 │   ├── QnxTcpServer.cpp            # Multi-client TCP event loop & session handler
 │   └── ConsoleSelfTest.cpp         # 120-step verification scenario with cut-in hazard
 ├── helloworld.use                  # QNX binary metadata & CLI documentation
-├── desktop_app.rs                  # Native Rust desktop host (HTTP 8088 / WS 8089)
+├── bridge/                         # Modular Rust Desktop Host & IPC Bridge
+│   └── src/
+│       ├── main.rs                 # Bridge daemon entrypoint & process manager
+│       ├── config.rs               # BridgeConfig struct (ports, host IP, env overrides)
+│       ├── asset_server.rs         # Static HTTP asset server (tiny_http, CORS headers)
+│       ├── ws_bridge.rs            # 60 Hz WebSocket <-> QNX TCP bridge (TCP_NODELAY)
+│       └── window_launcher.rs      # Chrome/Chromium WebGPU application window launcher
 ├── Cargo.toml                      # Rust dependencies & compilation profile
 ├── launch_qnx_autonomous_car.sh    # Unified launcher script
 ├── run_benchmark.py                # Automated Chrome DevTools Protocol test runner
@@ -216,7 +222,13 @@ neutrino-adas/
 └── slop-newyork/                   # WebGPU 3D Manhattan digital twin & simulation
     ├── index.html                  # Simulation viewport & glassmorphism HUD overlay
     ├── js/
-    │   ├── autonomous-driver.js    # Telemetry packing, radar scan & mirror rendering
+    │   ├── adas/                   # Modular ES6 Autonomous Driving Frontend Modules
+    │   │   ├── QnxTelemetryClient.js # WebSocket client to IPC bridge with auto-reconnect
+    │   │   ├── PerceptionScanner.js  # Traffic/bus/pedestrian radar & red-light stop lines
+    │   │   ├── SideMirrorRenderer.js # Picture-in-picture dual mirror renderer & BSM alert
+    │   │   ├── AdasHudView.js        # Glassmorphism HUD DOM & mirror telemetry view
+    │   │   └── HornAudioEngine.js    # Web Audio API dual-tone automotive horn synthesis
+    │   ├── autonomous-driver.js    # AutonomousDriver thin OOP orchestrator
     │   ├── driving-metrics.js      # 60 FPS 5-metric instrumentation engine
     │   ├── main.js                 # Three.js animation loop & system coordinator
     │   ├── city-config.js          # Manhattan road network geometry & signal timing
