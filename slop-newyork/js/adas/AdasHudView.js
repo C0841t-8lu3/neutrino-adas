@@ -422,7 +422,20 @@ export class AdasHudView {
       this._setStyle(elTurnL, 'color', (data.leftBlinker || data.hazardLights) ? '#f59e0b' : '#475569');
     }
     if (elTurnR) {
-      elTurnR.style.color = (data.rightBlinker || data.hazardLights) ? '#f59e0b' : '#334155';
+      this._setStyle(elTurnR, 'color', (data.rightBlinker || data.hazardLights) ? '#f59e0b' : '#475569');
+    }
+
+    // SIL Realism UI Toggles
+    if (elSensorsBtn && data.realisticSensors !== undefined) {
+      this._setDomText(elSensorsBtn, data.realisticSensors ? 'Sensors: Realistic' : 'Sensors: Ground Truth');
+      this._setStyle(elSensorsBtn, 'color', data.realisticSensors ? '#f59e0b' : '#94a3b8');
+      this._setStyle(elSensorsBtn, 'borderColor', data.realisticSensors ? '#d97706' : '#475569');
+    }
+
+    if (elSurfaceBtn && data.surfaceType !== undefined) {
+      this._setDomText(elSurfaceBtn, data.surfaceType === 'wet' ? 'Road: Wet (μ=0.55)' : 'Road: Dry (μ=0.95)');
+      this._setStyle(elSurfaceBtn, 'color', data.surfaceType === 'wet' ? '#38bdf8' : '#94a3b8');
+      this._setStyle(elSurfaceBtn, 'borderColor', data.surfaceType === 'wet' ? '#0284c7' : '#475569');
     }
 
     // Mirror BSM LED Icons
@@ -431,11 +444,11 @@ export class AdasHudView {
     const bsmLIcon = document.getElementById('bsm-left-icon');
     if (bsmL) {
       if (data.leftBsmAlert) {
-        bsmL.style.background = '#ef4444';
-        bsmL.style.borderColor = '#ffffff';
-        bsmL.style.boxShadow = '0 0 12px #ef4444';
-        if (bsmLText) bsmLText.style.color = '#ffffff';
-        if (bsmLIcon) bsmLIcon.style.color = '#ffffff';
+        this._setStyle(bsmL, 'background', '#ef4444');
+        this._setStyle(bsmL, 'borderColor', '#ffffff');
+        this._setStyle(bsmL, 'boxShadow', '0 0 12px #ef4444');
+        this._setStyle(bsmLText, 'color', '#ffffff');
+        this._setStyle(bsmLIcon, 'color', '#ffffff');
       } else {
         bsmL.style.background = 'rgba(15,23,42,0.85)';
         bsmL.style.borderColor = '#475569';
