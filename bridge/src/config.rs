@@ -96,3 +96,19 @@ impl BridgeConfig {
         config
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_bridge_config_default() {
+        let cfg = BridgeConfig::default();
+        assert_eq!(cfg.http_port, 8088);
+        assert_eq!(cfg.ws_port, 8089);
+        assert_eq!(cfg.qnx_port, 9090);
+        assert_eq!(cfg.qnx_host, "192.168.122.62");
+        assert_eq!(cfg.server_only, false);
+        assert_eq!(cfg.is_benchmark, false);
+    }
+}
