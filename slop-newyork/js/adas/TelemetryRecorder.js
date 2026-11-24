@@ -102,3 +102,38 @@ export class TelemetryRecorder {
 
     const startIdx = this.count < this.capacity ? 0 : this.head;
     for (let i = 0; i < this.count; i++) {
+      const idx = (startIdx + i) % this.capacity;
+      frames.push(this.buffer[idx]);
+    }
+    return frames;
+  }
+
+  getScorecard() {
+    const frames = this.getOrderedFrames();
+    const n = frames.length;
+    if (n === 0) {
+      return {
+        totalFrames: 0,
+        durationSeconds: 0,
+        rmsLaneOffsetM: 0,
+        minTtcS: 999,
+        maxBrakeCmd: 0,
+        aebEvents: 0,
+        bsmAborts: 0,
+        collisions: 0,
+        qnxRttP50Us: 0,
+        qnxRttP95Us: 0
+      };
+    }
+
+    // RMS Lane Offset
+    let sumSqOffset = 0;
+    const rtts = [];
+    for (let i = 0; i < n; i++) {
+      const f = frames[i];
+      sumSqOffset += f.laneOffset * f.laneOffset;
+      if (f.rttUs > 0) rtts.push(f.rttUs);
+    }
+    const rmsLaneOffset = Math.sqrt(sumSqOffset / n);
+
+    rtts.sort((a, b) => a - b);
