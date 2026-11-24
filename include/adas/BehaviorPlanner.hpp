@@ -41,3 +41,24 @@ public:
         const ForwardScanResult& fwd,
         const BlindSpotResult& bsm,
         const std::vector<Obstacle>& obstacles,
+        float dt
+    );
+
+    int getDesiredLane() const { return desired_lane_; }
+    void setDesiredLane(int lane) { desired_lane_ = lane; }
+    float getCurrentNudge() const { return current_nudge_; }
+
+private:
+    AdasConfig config_;
+    int desired_lane_ = 1;
+    int pending_lane_ = 1;
+    int lane_change_dir_ = 0;
+    float lane_change_prep_timer_ = 0.0f;
+    bool lane_change_in_progress_ = false;
+    float blocked_timer_ = 0.0f;
+    float current_nudge_ = 0.0f;
+    float creep_timer_ = 0.0f;
+    float lane_change_cooldown_ = 0.0f;
+};
+
+} // namespace adas
