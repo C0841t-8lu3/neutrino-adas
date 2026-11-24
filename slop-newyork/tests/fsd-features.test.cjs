@@ -149,3 +149,41 @@ test('FsdVisualizer applies Tesla Blue, Amber, and Red color states accurately',
 
   const visualizer = new FsdVisualizer(null, {});
   const mockCar = {
+    position: { x: 0, y: 0, z: 10 },
+    heading: 0,
+    speed: 10,
+    steerAngle: 0
+  };
+
+  // 1. Cruising -> Tesla Blue / Cyan
+  visualizer.update(mockCar, { driveMode: 1, state: 'CRUISING' }, null, null);
+  assert.ok(visualizer.ribbonColors[0] < 0.2, 'Red channel low for Tesla Cyan');
+  assert.ok(visualizer.ribbonColors[1] > 0.6, 'Green channel high for Tesla Cyan');
+  assert.ok(visualizer.ribbonColors[2] > 0.8, 'Blue channel high for Tesla Cyan');
+
+  // 2. Lane Change / Nudge -> Amber
+  visualizer.update(mockCar, { driveMode: 3, laneChangeActive: true, state: 'LANE_CHANGING' }, null, null);
+  assert.ok(visualizer.ribbonColors[0] > 0.8, 'Red channel high for Amber');
+  assert.ok(visualizer.ribbonColors[1] > 0.4 && visualizer.ribbonColors[1] < 0.8, 'Green channel mid for Amber');
+  assert.ok(visualizer.ribbonColors[2] < 0.2, 'Blue channel low for Amber');
+
+  // 3. AEB Emergency Braking -> Red
+  visualizer.update(mockCar, { driveMode: 5, aebActive: true, state: 'AEB_BRAKING' }, null, null);
+  assert.ok(visualizer.ribbonColors[0] > 0.8, 'Red channel high for Emergency Red');
+  assert.ok(visualizer.ribbonColors[1] < 0.3, 'Green channel low for Emergency Red');
+  assert.ok(visualizer.ribbonColors[2] < 0.3, 'Blue channel low for Emergency Red');
+});
+
+test('FsdVisualizer optimizes draw range for LOW / i3 MODE (16 segments vs 32 segments)', () => {
+  const threeMock = createThreeMock();
+  const { FsdVisualizer } = loadModule(fsdSource, {
+    globals: { Float32Array, Uint16Array, Math },
+    imports: { 'three/webgpu': threeMock }
+  });
+
+  const mockGovLow = { profile: 'LOW' };
+  const visualizerLow = new FsdVisualizer(null, { perfGovernor: mockGovLow });
+  const mockCar = { position: { x: 0, y: 0, z: 0 }, heading: 0, speed: 10, steerAngle: 0 };
+
+  visualizerLow.update(mockCar, {}, null, null);
+  assert.equal(visualizerLow.ribbonGeo.drawRange.count, 16 * 6, '16 segments in LOW / i3 MODE');
