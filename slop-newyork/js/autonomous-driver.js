@@ -445,11 +445,68 @@ export class AutonomousDriver {
       car.carState.value.z = (this.rightBlinker || this.hazardLights) ? 1 : 0;
     }
 
-    // 6. Render Real-Time Side-View Mirrors
-    this.renderSideMirror(this.leftMirrorCtx, this.leftMirrorCanvas, car, true, this.leftBsmAlert);
-    this.renderSideMirror(this.rightMirrorCtx, this.rightMirrorCanvas, car, false, this.rightBsmAlert);
+    // 6. Progress Scenarios & Record Black-Box Flight Telemetry
+    if (this.scenarioInjector) {
+      this.scenarioInjector.update(dt);
+    }
 
-    // 7. Update HUD & Mirror Warning Indicators
+    if (this.telemetryRecorder) {
+      this.telemetryRecorder.record({
+        time: now,
+        seq: this.seq,
+        x: car.position.x,
+        y: car.position.y,
+        z: car.position.z,
+        speed: car.speed,
+        steerAngle: car.steerAngle || 0,
+        throttle: effThrottle,
+        brake: effBrake,
+        steerCmd: effSteer,
+        driveMode: this.driveModeCode,
+        leadDist: this.leadDist,
+        ttc: this.ttc,
+        rttUs: this.rttUs,
+        bsmAlert: this.leftBsmAlert || this.rightBsmAlert,
+        aebActive: this.state === 'AEB_BRAKING' || effBrake > 0.8,
+        watchdogOk: !this.watchdogFault,
+        laneOffset: 0,
+        status: this.statusMessage
+      });
+    }
+
+    // 7. Staggered Real-Time Side-View Mirrors
+    const skipInterval = this.perfGovernor?.mirrorSkipInterval || 2;
+    this.mirrorTick = (this.mirrorTick || 0) + 1;
+    if (this.mirrorTick % skipInterval === 0) {
+      const isLeft = ((this.mirrorTick / skipInterval) | 0) % 2 === 0;
+      if (isLeft) {
+        this.renderSideMirror(this.leftMirrorCtx, this.leftMirrorCanvas, car, true, this.leftBsmAlert);
+      } else {
+        this.renderSideMirror(this.rightMirrorCtx, this.rightMirrorCanvas, car, false, this.rightBsmAlert);
+      }
+    }
+
+    // 8. Update Tesla FSD 3D Trajectory Ribbon & Perception Overlay
+    if (this.fsdVisualizer) {
+      if (!this.fsdVisualizer.perfGovernor && this.perfGovernor) {
+        this.fsdVisualizer.perfGovernor = this.perfGovernor;
+      }
+      this.fsdVisualizer.update(car, {
+        driveMode: this.driveModeCode,
+        state: this.state,
+        laneChangeActive: this.targetLaneIndex !== this.currentLaneIndex,
+        currentLaneIndex: this.currentLaneIndex,
+        targetLaneIndex: this.targetLaneIndex,
+        lateralNudge: this.lateralNudge,
+        isYielding: this.isYielding,
+        leadDistance: this.leadDist,
+        leftMirrorBlindSpot: this.leftBsmAlert,
+        rightMirrorBlindSpot: this.rightBsmAlert,
+        activeRedStopObstacle: this.activeRedStopObstacle
+      }, this.routePlanner, this.perceptionScanner);
+    }
+
+    // 9. Update HUD & Mirror Warning Indicators
     this.updateHud();
   }
 
@@ -461,6 +518,12 @@ export class AutonomousDriver {
       qnxConnected: this.qnxConnected,
       enabled: this.enabled,
       state: this.state,
+      driveProfile: this.driveProfile,
+      speedMps: car ? car.speed : 0,
+      fsdVisEnabled: this.fsdVisualizer ? this.fsdVisualizer.enabled : true,
+      hasActiveRoute: !!(this.routePlanner && this.routePlanner.hasActiveRoute()),
+      nextTurnHint: this.routePlanner?._trackingRef?.turnHint || 'STRAIGHT',
+      nextTurnDistance: this.routePlanner?._trackingRef?.nextTurnDistance || 0,
       speedMph: speedMph,
       targetSpeedMph: this.targetSpeedMph,
       leadDist: this.leadDist,
@@ -470,7 +533,10 @@ export class AutonomousDriver {
       leftBlinker: this.leftBlinker,
       rightBlinker: this.rightBlinker,
       hazardLights: this.hazardLights,
-      statusMessage: this.statusMessage
+      statusMessage: this.statusMessage,
+      watchdogFault: this.watchdogFault,
+      realisticSensors: this.perceptionScanner?.sensorNoiseModel?.enabled || false,
+      surfaceType: this.actuatorDynamics?.surfaceType || 'dry'
     });
   }
 }
