@@ -381,34 +381,75 @@ export class PerceptionScanner {
 
     // Prioritize virtual red-light barrier at index 0 (never occluded/dropped by sensor noise)
     if (this.activeRedStopObstacle) {
-      obsPayload.push({
-        x: Math.round(this.activeRedStopObstacle.x * 10) / 10,
-        z: Math.round(this.activeRedStopObstacle.z * 10) / 10,
-        speed: 0.0,
-        type: 0
+      const p = this._payloadPool[payloadIdx++];
+      p.x = Math.round(this.activeRedStopObstacle.x * 10) / 10;
+      p.z = Math.round(this.activeRedStopObstacle.z * 10) / 10;
+      p.speed = 0.0;
+      p.type = 3; // Virtual Stop Line / Red Light
+      p.vx = 0.0;
+      p.vz = 0.0;
+      this._obstaclePayload.push(p);
+    }
+
+    // Filter and collect candidate vehicles into scratch array without heap allocations
+    let scratchCount = 0;
+    const trafficCount = trafficList.length;
+    for (let i = 0; i < trafficCount; i++) {
+      const t = trafficList[i];
+      if (t.kind === 'Red Light Stop Line') continue;
+      const dx = t.x - px;
+      const dz = t.z - pz;
+      const distSq = dx * dx + dz * dz;
+      if (distSq < 7500) { // within ~86m radius
+        if (scratchCount >= this._sortScratch.length) {
+          this._sortScratch.push({ traffic: null, distSq: 0 });
+        }
+        const s = this._sortScratch[scratchCount++];
+        s.traffic = t;
+        s.distSq = distSq;
+      }
+    }
+
+    // In-place sort scratch items by distance squared
+    this._sortScratch.length = scratchCount;
+    this._sortScratch.sort((a, b) => a.distSq - b.distSq);
+
+    const limit = Math.min(scratchCount, maxObstacles - this._obstaclePayload.length);
+    const candidateList = [];
+    for (let i = 0; i < limit; i++) {
+      const s = this._sortScratch[i];
+      const t = s.traffic;
+      candidateList.push({
+        x: Math.round(t.x * 10) / 10,
+        z: Math.round(t.z * 10) / 10,
+        speed: Math.round((t.v || 0) * 10) / 10,
+        type: t.isBus ? 1 : (t.isPedestrian ? 2 : 0),
+        id: t.id || (i + 1),
+        vx: Math.round((t.vx || 0) * 10) / 10,
+        vz: Math.round((t.vz || 0) * 10) / 10
       });
     }
 
-    const sortedTraffic = trafficList
-      .filter(t => t.kind !== 'Red Light Stop Line')
-      .map(t => {
-        const dx = t.x - px;
-        const dz = t.z - pz;
-        return { t, distSq: dx * dx + dz * dz };
-      })
-      .filter(item => item.distSq < 7500)
-      .sort((a, b) => a.distSq - b.distSq);
+    // Apply realistic radar sensor noise & tracking filter if enabled
+    const processed = (this.sensorNoiseModel && this.sensorNoiseModel.enabled)
+      ? this.sensorNoiseModel.process(candidateList, car, dt)
+      : candidateList;
 
-    for (const item of sortedTraffic) {
-      if (obsPayload.length >= maxObstacles) break;
-      obsPayload.push({
-        x: Math.round(item.t.x * 10) / 10,
-        z: Math.round(item.t.z * 10) / 10,
-        speed: Math.round((item.t.v || 0) * 10) / 10,
-        type: item.t.isBus ? 1 : 0
-      });
+    for (let i = 0; i < processed.length; i++) {
+      const t = processed[i];
+      if (payloadIdx >= this._payloadPool.length) {
+        this._payloadPool.push({ x: 0, z: 0, speed: 0, type: 0, vx: 0, vz: 0 });
+      }
+      const p = this._payloadPool[payloadIdx++];
+      p.x = Math.round(t.x * 10) / 10;
+      p.z = Math.round(t.z * 10) / 10;
+      p.speed = Math.round(t.speed * 10) / 10;
+      p.type = t.type;
+      p.vx = t.vx || 0;
+      p.vz = t.vz || 0;
+      this._obstaclePayload.push(p);
     }
 
-    return obsPayload;
+    return this._obstaclePayload;
   }
 }
