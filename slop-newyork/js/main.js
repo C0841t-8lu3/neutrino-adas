@@ -545,7 +545,19 @@ async function initApp() {
         mapHint.textContent = 'Tap to teleport · Drag to pan · Use + / − to zoom';
       }
     },
-    onTeleport: teleportTo
+    onTeleport: teleportTo,
+    onDriveTo: (destX, destZ) => {
+      if (typeof controllerManager !== 'undefined' && controllerManager.activeMode !== 'car') {
+        if (typeof selectMode === 'function') selectMode('car');
+      }
+      if (typeof autonomousDriver !== 'undefined' && typeof autonomousDriver.enable === 'function') {
+        autonomousDriver.enable();
+      }
+      if (typeof selectCamera === 'function') {
+        selectCamera('chase', true);
+      }
+      console.log(`[Main] Autonomous navigation engaged to (${destX.toFixed(1)}, ${destZ.toFixed(1)})`);
+    }
   });
 
   teleportButtons.forEach((btn) => {
