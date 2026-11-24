@@ -283,3 +283,34 @@ export class FsdVisualizer {
     }
 
     // 4. Minimalist Lead Vehicle Perception Marker
+    const leadDist = driverState.leadDistance || perceptionScanner?.leadDist || 999;
+    if (leadDist < 70.0) {
+      const lx = px + Math.sin(yaw) * (leadDist + 2.4);
+      const lz = pz + Math.cos(yaw) * (leadDist + 2.4);
+      this.leadMarkerMesh.visible = true;
+      this.leadMarkerMesh.position.set(lx, carY + 0.01, lz);
+
+      if (isAebOrEmergency) {
+        this.leadMat.color.setHex(0xef4444); // Red during emergency brake
+      } else {
+        this.leadMat.color.setHex(0x00f0ff); // Cyan for ACC tracking
+      }
+    } else {
+      this.leadMarkerMesh.visible = false;
+    }
+
+    // 5. Minimalist BSM Blind-Spot Vehicle Indicator
+    const leftBsm = !!driverState.leftMirrorBlindSpot;
+    const rightBsm = !!driverState.rightMirrorBlindSpot;
+    if (leftBsm || rightBsm) {
+      this.bsmMarkerMesh.visible = true;
+      const sideSign = leftBsm ? -1 : 1;
+      const bx = px + Math.cos(yaw) * (sideSign * 2.0);
+      const bz = pz - Math.sin(yaw) * (sideSign * 2.0);
+      this.bsmMarkerMesh.position.set(bx, carY + 0.01, bz);
+      this.bsmMarkerMesh.rotation.y = yaw + (leftBsm ? 0 : Math.PI);
+    } else {
+      this.bsmMarkerMesh.visible = false;
+    }
+  }
+
