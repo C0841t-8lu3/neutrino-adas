@@ -16,9 +16,35 @@ export class AdasHudView {
     this.rightMirrorCanvas = null;
     this.leftMirrorCtx = null;
     this.rightMirrorCtx = null;
+    this.lastHudUpdate = 0;
 
     if (typeof document !== 'undefined') {
       this.createHudAndMirrors();
+    }
+  }
+
+  _setDomText(el, val) {
+    if (!el) return;
+    if (el._cachedText !== val) {
+      el._cachedText = val;
+      el.textContent = val;
+    }
+  }
+
+  _setDomHtml(el, val) {
+    if (!el) return;
+    if (el._cachedHtml !== val) {
+      el._cachedHtml = val;
+      el.innerHTML = val;
+    }
+  }
+
+  _setStyle(el, prop, val) {
+    if (!el) return;
+    if (el._cachedStyles === undefined) el._cachedStyles = {};
+    if (el._cachedStyles[prop] !== val) {
+      el._cachedStyles[prop] = val;
+      el.style[prop] = val;
     }
   }
 
@@ -102,7 +128,7 @@ export class AdasHudView {
     hud.style.fontFamily = "system-ui, -apple-system, sans-serif";
     hud.style.fontSize = '12px';
     hud.style.boxShadow = '0 16px 36px rgba(0,0,0,0.7)';
-    hud.style.minWidth = '290px';
+    hud.style.minWidth = '315px';
     hud.style.pointerEvents = 'auto';
 
     hud.innerHTML = `
