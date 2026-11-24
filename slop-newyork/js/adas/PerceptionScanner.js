@@ -364,14 +364,13 @@ export class PerceptionScanner {
       this.ttc = 999;
     }
 
-    return {
-      trafficList: traffic,
-      leadDist: this.leadDist,
-      leadRelSpeed: this.leadRelSpeed,
-      closestObstacleName: this.closestObstacleName,
-      ttc: this.ttc,
-      activeRedStopObstacle: this.activeRedStopObstacle
-    };
+    this._scanResult.leadDist = this.leadDist;
+    this._scanResult.leadRelSpeed = this.leadRelSpeed;
+    this._scanResult.closestObstacleName = this.closestObstacleName;
+    this._scanResult.ttc = this.ttc;
+    this._scanResult.activeRedStopObstacle = this.activeRedStopObstacle;
+
+    return this._scanResult;
   }
 
   buildObstaclePayload(car, trafficList, maxObstacles = 24) {
