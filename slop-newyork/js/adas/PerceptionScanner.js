@@ -188,42 +188,125 @@ export class PerceptionScanner {
     const isAvenue = Math.abs(sin) < 0.6;
     let redStopObstacle = null;
 
-    if ((aveSignal === 'red' || aveSignal === 'amber') && this.trafficSystem?.network?.nodes) {
-      let minFwd = 999.0;
-      let targetNode = null;
+    // Intersection box-clearing rule: Never stop for red lights once inside an intersection
+    const inIntersection = !!(car.in_intersection || (routePlanner && routePlanner._trackingRef && routePlanner._trackingRef.inIntersection));
 
-      for (const node of this.trafficSystem.network.nodes) {
-        if (!node.signal) continue;
-        const dx = node.x - px;
-        const dz = node.z - pz;
-        const fwd = dx * sin + dz * cos;
-        const lat = dx * cos - dz * sin;
+    if (!inIntersection && this.trafficSystem?.network) {
+      let bestDist = 999.0;
+      let stopX = 0;
+      let stopZ = 0;
+      let stopHeading = car.heading;
+      let targetFound = false;
 
-        // Find the closest intersection node directly ahead in the avenue corridor
-        if (fwd > 1.5 && fwd < 85.0 && Math.abs(lat) < 8.0) {
-          if (fwd < minFwd) {
-            minFwd = fwd;
-            targetNode = node;
+      // 1. Precise Edge-based Stop-Line Detection (s = edge.len - 0.35 before crosswalk)
+      if (this.trafficSystem.network.edges && this.trafficSystem.network.edges.length > 0) {
+        const edges = this.trafficSystem.network.edges;
+        for (let i = 0; i < edges.length; i++) {
+          const e = edges[i];
+          if (!e.to || !e.to.signal) continue;
+
+          // Check if vehicle is along or approaching this edge in the travel direction
+          const dx = px - e.sx;
+          const dz = pz - e.sz;
+          const s = dx * e.dx + dz * e.dz;
+          const rx = e.rx !== undefined ? e.rx : -e.dz;
+          const rz = e.rz !== undefined ? e.rz : e.dx;
+          const lat = dx * rx + dz * rz;
+
+          // Must be close laterally to the edge corridor (< 8.0m) and pointing roughly in same direction
+          const headingDot = sin * e.dx + cos * e.dz;
+          if (headingDot < 0.6 || Math.abs(lat) > 8.0) continue;
+
+          const stopS = e.len - 0.35; // Painted stop line before the crosswalk
+          const dStopLine = stopS - s;
+
+          if (dStopLine > 0.5 && dStopLine < 65.0) {
+            // Signal phase for this edge's axis
+            const edgeIsAvenue = (e.axis === 'ave');
+            const phase = signalPhase(effectiveTime, edgeIsAvenue);
+
+            if (phase === 'red') {
+              if (dStopLine < bestDist) {
+                bestDist = dStopLine;
+                stopX = e.sx + e.dx * stopS;
+                stopZ = e.sz + e.dz * stopS;
+                stopHeading = Math.atan2(e.dx, e.dz);
+                targetFound = true;
+              }
+            } else if (phase === 'amber') {
+              // Yellow-Light Dilemma Zone
+              const dStop = (car.speed * car.speed) / (2 * 2.8) + 2.5;
+              if (dStopLine >= dStop) {
+                if (dStopLine < bestDist) {
+                  bestDist = dStopLine;
+                  stopX = e.sx + e.dx * stopS;
+                  stopZ = e.sz + e.dz * stopS;
+                  stopHeading = Math.atan2(e.dx, e.dz);
+                  targetFound = true;
+                }
+              }
+              // If dStopLine < dStop: dilemma zone, commit and proceed through!
+            }
           }
         }
       }
 
-      if (targetNode) {
-        const stopLineFwd = minFwd - (targetNode.hz || 3.0) - 2.5;
-        const obsFwd = Math.max(1.8, stopLineFwd);
-        redStopObstacle = {
-          x: px,
-          z: pz + (cos * obsFwd) + (sin * 0.0),
-          v: 0.0,
-          half: 1.0,
-          kind: 'Red Light Stop Line',
-          isBus: false
-        };
-        traffic.push(redStopObstacle);
+      // 2. Fallback Node Scan (for mock road networks without detailed edges)
+      if (!targetFound && this.trafficSystem.network.nodes) {
+        const nodes = this.trafficSystem.network.nodes;
+        const currentPhase = signalPhase(effectiveTime, isAvenue);
 
-        if (!this._lastLoggedSignal || Math.abs(minFwd - this._lastLoggedSignal) > 15.0) {
-          this._lastLoggedSignal = minFwd;
-          console.log(`[PerceptionScanner] Red light detected ahead at distance ${minFwd.toFixed(1)}m, stop line at ${obsFwd.toFixed(1)}m`);
+        if (currentPhase === 'red' || currentPhase === 'amber') {
+          let minFwd = 999.0;
+          let targetNode = null;
+          for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+            if (!node.signal) continue;
+            const dx = node.x - px;
+            const dz = node.z - pz;
+            const fwd = dx * sin + dz * cos;
+            const lat = dx * cos - dz * sin;
+
+            if (fwd > 1.5 && fwd < 65.0 && Math.abs(lat) < 7.0) {
+              if (fwd < minFwd) {
+                minFwd = fwd;
+                targetNode = node;
+              }
+            }
+          }
+
+          if (targetNode) {
+            const stopLineFwd = minFwd - (targetNode.hz || 3.0) - 2.5 - 0.35;
+            let shouldStop = (currentPhase === 'red');
+            if (currentPhase === 'amber') {
+              const dStop = (car.speed * car.speed) / (2 * 2.8) + 2.5;
+              shouldStop = (stopLineFwd >= dStop);
+            }
+            if (shouldStop && stopLineFwd > 0.5) {
+              bestDist = stopLineFwd;
+              stopX = px + sin * stopLineFwd;
+              stopZ = pz + cos * stopLineFwd;
+              stopHeading = car.heading;
+              targetFound = true;
+            }
+          }
+        }
+      }
+
+      if (targetFound) {
+        this._redStopObstacle.x = stopX;
+        this._redStopObstacle.z = stopZ;
+        this._redStopObstacle.heading = stopHeading;
+        this._redStopObstacle.v = 0.0;
+        this._redStopObstacle.half = 1.0;
+        this._redStopObstacle.kind = 'Red Light Stop Line';
+        this._redStopObstacle.isBus = false;
+        redStopObstacle = this._redStopObstacle;
+        this._trafficList.push(this._redStopObstacle);
+
+        if (!this._lastLoggedSignal || Math.abs(bestDist - this._lastLoggedSignal) > 15.0) {
+          this._lastLoggedSignal = bestDist;
+          console.log(`[PerceptionScanner] Direction-matched red/amber signal ahead at distance ${bestDist.toFixed(1)}m`);
         }
       }
     }
