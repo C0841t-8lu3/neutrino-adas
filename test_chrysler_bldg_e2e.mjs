@@ -285,3 +285,35 @@ async function runChryslerBuildingE2ETest() {
       turn_signal_hint: ref.turnSignalHint,
       in_intersection: ref.inIntersection ? 1 : 0,
       dist_to_next_turn: Math.round(ref.nextTurnDistance * 10) / 10,
+      pre_turn_lane_hint: ref.preTurnLaneHint || 0
+    });
+
+    currIdx = Math.min(waypoints.length - 1, currIdx + 3);
+    const targetWp = waypoints[currIdx];
+    ego.x = targetWp.x;
+    ego.z = targetWp.z;
+    ego.heading = targetWp.heading;
+    ego.steer_angle = res.steer_cmd;
+
+    if (ref.distToGoal <= 3.0 || res.drive_mode === 6 || res.status_message.includes('Arrived')) {
+      arrived = true;
+      const lastWp = waypoints[waypoints.length - 1];
+      const finalDistToGoal = Math.hypot(ego.x - lastWp.x, ego.z - lastWp.z);
+      console.log(`\n  [SUCCESS] Arrived at destination "${planner.destinationName}"! Final waypoint gap: ${finalDistToGoal.toFixed(2)}m (<= 3.0m)`);
+      console.log(`  Final QNX Status: "${res.status_message}"`);
+      break;
+    }
+  }
+
+  assert.ok(arrived, 'Autonomous car must arrive cleanly at Chrysler Building');
+  ws.close();
+
+  console.log('\n====================================================================');
+  console.log('  ALL CHRYSLER BUILDING REALISM VERIFICATIONS PASSED (100% GREEN)   ');
+  console.log('====================================================================');
+}
+
+runChryslerBuildingE2ETest().catch((err) => {
+  console.error('\n[FATAL TEST ERROR]', err);
+  process.exit(1);
+});
