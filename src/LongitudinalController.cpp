@@ -106,7 +106,7 @@ LongitudinalOutput LongitudinalController::step(
         out.status_message = diag_buf;
     }
     // Adaptive Cruise Control (ACC) & Intersection Stop-Line Deceleration
-    else if (scan.lead_distance < 85.0f) {
+    else if (scan.lead_distance < 85.0f && !ignore_stop_line) {
         current_mode_ = DriveMode::ACC_FOLLOWING;
         float desired_gap = config_.min_safe_dist + (ego.speed * config_.time_headway);
 
