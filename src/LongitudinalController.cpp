@@ -136,12 +136,21 @@ LongitudinalOutput LongitudinalController::step(
             current_mode_ = DriveMode::STOPPED;
             out.throttle = 0.0f;
             out.brake = 0.8f;
-            out.status_message = "QNX Safety Stop: Holding at Red Light / Stop Line";
+            out.status_message = scan.is_lead_stop_line
+                ? "QNX FSD: Holding at Red Light Stop Line"
+                : "QNX Safety Stop: Holding Behind Stopped Vehicle";
         } else {
-            std::ostringstream ss;
-            ss << "QNX ACC: Following Lead (" << std::fixed << std::setprecision(1) << scan.lead_distance
-               << "m) | Speed: " << (ego.speed * 3.6f) << " km/h";
-            out.status_message = ss.str();
+            char status_buf[128];
+            if (scan.is_lead_stop_line) {
+                std::snprintf(status_buf, sizeof(status_buf),
+                              "QNX FSD: Decelerating to Red Light Stop Line (%.1fm) | Speed: %.1f km/h",
+                              scan.lead_distance, ego.speed * 3.6f);
+            } else {
+                std::snprintf(status_buf, sizeof(status_buf),
+                              "QNX ACC: Following Lead (%.1fm) | Speed: %.1f km/h",
+                              scan.lead_distance, ego.speed * 3.6f);
+            }
+            out.status_message = status_buf;
         }
     }
     // Free Cruising
