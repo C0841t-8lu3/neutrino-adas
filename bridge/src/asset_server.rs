@@ -1,10 +1,12 @@
 // bridge/src/asset_server.rs
 // ============================================================================
 // Static Asset HTTP Server for Slop New York 3D WebGPU Simulation
-// Serves procedural city data, models, shaders, textures, and fonts with CORS
+// In-Memory Cached Asset Server with Gzip Compression & Cache-Control
 // ============================================================================
 
-use std::fs::File;
+use std::collections::HashMap;
+use std::fs;
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
