@@ -595,3 +595,34 @@ export class RoutePlanner {
     tr.speedLimit = targetWp.speedLimit;
     tr.turnHint = turnHint;
     tr.turnSignalHint = turnSignalHint;
+    tr.preTurnLaneHint = preTurnLaneHint;
+    tr.inIntersection = inIntersection;
+    tr.lateralError = lateralError;
+    tr.headingError = headingError;
+    tr.nextTurnDistance = nextTurnDist;
+    tr.nextStreetName = nextStreet;
+
+    return tr;
+  }
+
+  /**
+   * Evaluates whether vehicle position has deviated beyond the off-route threshold.
+   */
+  isOffRoute(egoPos, threshold = null) {
+    if (!this.hasActiveRoute()) return false;
+    const thresh = threshold !== null ? threshold : this.offRouteThreshold;
+    const ex = egoPos.x;
+    const ez = egoPos.z;
+    let minDistSq = Infinity;
+    for (let i = 0; i < this.activeRoute.length; i++) {
+      const wp = this.activeRoute[i];
+      const dx = ex - wp.x;
+      const dz = ez - wp.z;
+      const dSq = dx * dx + dz * dz;
+      if (dSq < minDistSq) {
+        minDistSq = dSq;
+      }
+    }
+    return Math.sqrt(minDistSq) > thresh;
+  }
+}
