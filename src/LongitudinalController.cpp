@@ -66,8 +66,26 @@ LongitudinalOutput LongitudinalController::step(
     bool aeb_candidate = (!scan.is_lead_stop_line) && (
         (scan.time_to_collision < 1.7f && scan.lead_distance < 32.0f) ||
         (scan.lead_distance < 6.5f && ego.speed > 1.0f) ||
-        (scan.pedestrian_ahead && scan.lead_distance < 18.0f)) {
+        (scan.pedestrian_ahead && scan.lead_distance < 18.0f)
+    );
 
+    bool aeb_trigger = false;
+    if (aeb_candidate) {
+        // Critical imminent hazard (<4.0m, low TTC < 1.3s, or close pedestrian < 12m): trigger in 1 frame
+        if (scan.lead_distance < 4.0f || scan.time_to_collision < 1.3f || (scan.pedestrian_ahead && scan.lead_distance < 12.0f)) {
+            aeb_confirm_count_ = 2;
+            aeb_trigger = true;
+        } else {
+            aeb_confirm_count_++;
+            if (aeb_confirm_count_ >= 2) {
+                aeb_trigger = true;
+            }
+        }
+    } else {
+        aeb_confirm_count_ = 0;
+    }
+
+    if (aeb_trigger) {
         current_mode_ = DriveMode::AEB_EMERGENCY;
         out.throttle = 0.0f;
         out.brake = 1.0f; // 100% emergency brake pressure
