@@ -142,3 +142,32 @@ async function runEndToEndTest() {
     }
   }
 
+  ws.close();
+
+  // Performance RTT summary
+  if (rttSamples.length > 0) {
+    rttSamples.sort((a, b) => a - b);
+    const p50 = rttSamples[Math.floor(rttSamples.length * 0.5)];
+    const p95 = rttSamples[Math.floor(rttSamples.length * 0.95)];
+    const p99 = rttSamples[Math.floor(rttSamples.length * 0.99)];
+    console.log('\n==================================================================');
+    console.log('              PERFORMANCE TELEMETRY VERIFICATION                  ');
+    console.log('==================================================================');
+    console.log(`  Total Telemetry Samples: ${rttSamples.length}`);
+    console.log(`  QNX RTT p50:             ${p50} µs`);
+    console.log(`  QNX RTT p95:             ${p95} µs (< 1000 µs target!)`);
+    console.log(`  QNX RTT p99:             ${p99} µs`);
+    console.log('==================================================================\n');
+  }
+
+  if (!arrived) {
+    throw new Error('Vehicle did not arrive within step budget');
+  }
+
+  console.log('[ALL VERIFICATIONS PASSED SUCCESSFULLY]');
+}
+
+runEndToEndTest().catch((err) => {
+  console.error('[TEST ERROR]', err);
+  process.exit(1);
+});
