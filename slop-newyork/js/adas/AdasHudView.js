@@ -378,20 +378,13 @@ export class AdasHudView {
     }
 
     if (elState) {
-      elState.textContent = data.enabled ? data.state.replace('_', ' ') : 'MANUAL';
-      if (!data.enabled) {
-        elState.style.color = '#94a3b8';
-      } else if (data.state === 'AEB_BRAKING') {
-        elState.style.color = '#ef4444';
-      } else if (data.state === 'ACC_FOLLOWING') {
-        elState.style.color = '#f59e0b';
-      } else {
-        elState.style.color = '#10b981';
-      }
+      this._setDomText(elState, data.enabled ? data.state.replace('_', ' ') : 'MANUAL');
+      const stateColor = !data.enabled ? '#94a3b8' : data.state === 'AEB_BRAKING' ? '#ef4444' : data.state === 'ACC_FOLLOWING' ? '#f59e0b' : '#10b981';
+      this._setStyle(elState, 'color', stateColor);
     }
 
     if (elSpeed) {
-      elSpeed.textContent = `${data.speedMph} / ${data.targetSpeedMph} mph`;
+      this._setDomText(elSpeed, `${data.speedMph} / ${data.targetSpeedMph} mph`);
     }
 
     if (elRadar) {
