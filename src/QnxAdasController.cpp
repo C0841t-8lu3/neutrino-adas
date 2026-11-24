@@ -26,10 +26,22 @@ void QnxAdasController::setConfig(const AdasConfig& config) {
     current_profile_ = config.profile;
     longitudinal_ctrl_.setConfig(config);
     lateral_ctrl_.setConfig(config);
+    behavior_planner_.setConfig(config);
+    jerk_limiter_.setConfig(config);
 }
 
 AdasOutput QnxAdasController::step(const VehicleState& ego, const std::vector<Obstacle>& obstacles, float dt) {
     AdasOutput out;
+
+    // 0. Dynamic Drive Profile Tuning (CHILL / STANDARD / HURRY)
+    if (ego.drive_profile != current_profile_) {
+        current_profile_ = ego.drive_profile;
+        config_.applyProfile(current_profile_);
+        longitudinal_ctrl_.setConfig(config_);
+        lateral_ctrl_.setConfig(config_);
+        behavior_planner_.setConfig(config_);
+        jerk_limiter_.setConfig(config_);
+    }
 
     // 1. Update signal clock and timers
     signal_mgr_.updateTimers(dt);
