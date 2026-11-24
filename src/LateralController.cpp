@@ -74,8 +74,6 @@ LateralOutput LateralController::step(
                 lane_change_active_ = true;
                 lane_change_timer_ = 3.5f;
             } else {
-                // ACCIDENT PREVENTION: Left side mirror detects vehicle in blind spot!
-                // QNX safety kernel aborts lane change and maintains safe following!
                 desired_lane_ = ego.current_lane;
                 out.hazard = true;
                 out.bsm_status_message = "QNX BSM: Left Lane Blocked! Aborting Lane Change (Accident Prevented)";
