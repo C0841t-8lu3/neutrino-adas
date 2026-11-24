@@ -375,3 +375,34 @@ export class RoutePlanner {
 
             if (waypoints.length > 0) {
               const prev = waypoints[waypoints.length - 1];
+              const d = Math.hypot(pt.x - prev.x, pt.z - prev.z);
+              cumDist += d;
+            }
+
+            waypoints.push({
+              x: pt.x,
+              z: pt.z,
+              heading: cheading,
+              curvature: curve.curv || 0.07,
+              speedLimit: 6.5, // 23 km/h safe cornering speed
+              distFromStart: cumDist,
+              isIntersection: true,
+              edgeId: -1,
+              streetName: 'Intersection Turn'
+            });
+          }
+        }
+      }
+    }
+
+    return waypoints;
+  }
+
+  /**
+   * Evaluates the active route relative to the vehicle's current state.
+   * Computes lookahead target, upcoming turn curvature, remaining distance,
+   * turn-by-turn guidance, and checks for automatic off-route rerouting.
+   */
+  getTrackingReference(egoPos, egoHeading, egoSpeed = 0) {
+    if (!this.hasActiveRoute()) {
+      this._trackingRef.hasRoute = false;
