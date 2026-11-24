@@ -1,29 +1,44 @@
 #include "ipc/TelemetryCodec.hpp"
-#include <sstream>
+#include <cstdio>
 #include <cstdlib>
 
 namespace ipc {
 
 std::string TelemetryCodec::generateResponseJson(const adas::AdasOutput& out) {
-    std::ostringstream ss;
-    ss << "{"
-       << "\"throttle\":" << out.throttle << ","
-       << "\"brake\":" << out.brake << ","
-       << "\"steer_cmd\":" << out.steer_cmd << ","
-       << "\"left_turn_signal\":" << (out.left_turn_signal ? "true" : "false") << ","
-       << "\"right_turn_signal\":" << (out.right_turn_signal ? "true" : "false") << ","
-       << "\"hazard_lights\":" << (out.hazard_lights ? "true" : "false") << ","
-       << "\"horn_active\":" << (out.horn_active ? "true" : "false") << ","
-       << "\"brake_lights\":" << (out.brake_lights ? "true" : "false") << ","
-       << "\"left_mirror_blind_spot\":" << (out.left_mirror_blind_spot ? "true" : "false") << ","
-       << "\"right_mirror_blind_spot\":" << (out.right_mirror_blind_spot ? "true" : "false") << ","
-       << "\"drive_mode\":" << static_cast<int>(out.drive_mode) << ","
-       << "\"lead_distance\":" << out.lead_distance << ","
-       << "\"lead_rel_speed\":" << out.lead_rel_speed << ","
-       << "\"time_to_collision\":" << out.time_to_collision << ","
-       << "\"status_message\":\"" << out.status_message << "\""
-       << "}\n";
-    return ss.str();
+    char buf[1024];
+    int n = std::snprintf(
+        buf, sizeof(buf),
+        "{\"throttle\":%.3f,\"brake\":%.3f,\"steer_cmd\":%.4f,"
+        "\"left_turn_signal\":%s,\"right_turn_signal\":%s,\"hazard_lights\":%s,"
+        "\"horn_active\":%s,\"brake_lights\":%s,\"left_mirror_blind_spot\":%s,"
+        "\"right_mirror_blind_spot\":%s,\"drive_mode\":%d,\"drive_profile\":%d,\"lateral_nudge\":%.2f,"
+        "\"lead_distance\":%.2f,\"lead_rel_speed\":%.2f,\"time_to_collision\":%.2f,"
+        "\"ack_seq\":%llu,\"watchdog_ok\":%s,"
+        "\"status_message\":\"%s\"}\n",
+        out.throttle,
+        out.brake,
+        out.steer_cmd,
+        out.left_turn_signal ? "true" : "false",
+        out.right_turn_signal ? "true" : "false",
+        out.hazard_lights ? "true" : "false",
+        out.horn_active ? "true" : "false",
+        out.brake_lights ? "true" : "false",
+        out.left_mirror_blind_spot ? "true" : "false",
+        out.right_mirror_blind_spot ? "true" : "false",
+        static_cast<int>(out.drive_mode),
+        static_cast<int>(out.drive_profile),
+        out.lateral_nudge,
+        out.lead_distance,
+        out.lead_rel_speed,
+        out.time_to_collision,
+        static_cast<unsigned long long>(out.ack_seq),
+        out.watchdog_ok ? "true" : "false",
+        out.status_message.c_str()
+    );
+    if (n > 0 && static_cast<size_t>(n) < sizeof(buf)) {
+        return std::string(buf, n);
+    }
+    return std::string(buf);
 }
 
 float TelemetryCodec::parseNumber(const std::string& src, const std::string& key) {
