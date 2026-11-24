@@ -172,3 +172,37 @@ export class TelemetryRecorder {
   }
 
   exportCsv() {
+    const frames = this.getOrderedFrames();
+    const headers = [
+      'time_s', 'seq', 'x_m', 'y_m', 'z_m', 'speed_mps', 'steer_rad',
+      'throttle', 'brake', 'steer_cmd', 'drive_mode', 'lead_dist_m',
+      'ttc_s', 'rtt_us', 'bsm_alert', 'aeb_active', 'watchdog_ok', 'lane_offset_m', 'status'
+    ];
+
+    const rows = [headers.join(',')];
+    for (let i = 0; i < frames.length; i++) {
+      const f = frames[i];
+      const cleanStatus = (f.status || '').replace(/,/g, ';');
+      rows.push([
+        f.time.toFixed(3),
+        f.seq,
+        f.x.toFixed(2),
+        f.y.toFixed(2),
+        f.z.toFixed(2),
+        f.speed.toFixed(2),
+        f.steerAngle.toFixed(4),
+        f.throttle.toFixed(3),
+        f.brake.toFixed(3),
+        f.steerCmd.toFixed(4),
+        f.driveMode,
+        f.leadDist.toFixed(1),
+        f.ttc.toFixed(2),
+        f.rttUs,
+        f.bsmAlert ? 1 : 0,
+        f.aebActive ? 1 : 0,
+        f.watchdogOk ? 1 : 0,
+        f.laneOffset.toFixed(3),
+        `"${cleanStatus}"`
+      ].join(','));
+    }
+
