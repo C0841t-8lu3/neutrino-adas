@@ -82,3 +82,31 @@ export class ActuatorDynamics {
     const targetSteer = Math.max(-1.0, Math.min(1.0, cmdSteer));
     const steerAlpha = 1.0 - Math.exp(-safeDt / Math.max(0.01, this.steerLagTau));
     let rawDeltaSteer = (targetSteer - this.actualSteer) * steerAlpha;
+
+    // Apply physical steering-rate clamping
+    const maxSteerStep = this.steerRateLimit * safeDt;
+    rawDeltaSteer = Math.max(-maxSteerStep, Math.min(maxSteerStep, rawDeltaSteer));
+    this.actualSteer += rawDeltaSteer;
+
+    // 2. Powertrain Throttle Lag
+    const targetThrottle = Math.max(0.0, Math.min(1.0, cmdThrottle));
+    const throttleAlpha = 1.0 - Math.exp(-safeDt / Math.max(0.01, this.throttleLagTau));
+    this.actualThrottle += (targetThrottle - this.actualThrottle) * throttleAlpha;
+
+    // 3. Hydraulic Brake Buildup Lag + Friction-Limited Braking Authority
+    const targetBrake = Math.max(0.0, Math.min(1.0, cmdBrake));
+    const brakeAlpha = 1.0 - Math.exp(-safeDt / Math.max(0.01, this.brakeLagTau));
+    this.actualBrake += (targetBrake - this.actualBrake) * brakeAlpha;
+
+    // On low-friction wet surfaces, effective braking deceleration is scaled by (mu / 0.95)
+    // requiring longer stopping distance
+    const effectiveBrake = this.actualBrake * (this.frictionMu / 0.95);
+
+    return {
+      throttle: this.actualThrottle,
+      brake: effectiveBrake,
+      steer: this.actualSteer,
+      frictionMu: this.frictionMu
+    };
+  }
+}
