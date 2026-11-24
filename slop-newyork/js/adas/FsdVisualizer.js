@@ -93,3 +93,35 @@ export class FsdVisualizer {
       side: THREE.DoubleSide
     });
     this.leadMarkerMesh = new THREE.Mesh(leadGeo, this.leadMat);
+    this.leadMarkerMesh.visible = false;
+    this.leadMarkerMesh.renderOrder = 997;
+    this.leadMarkerMesh.castShadow = false;
+    this.leadMarkerMesh.receiveShadow = false;
+
+    // 3b. BSM Blind-Spot Indicator Arc
+    const bsmGeo = new THREE.RingGeometry(2.0, 2.45, 16, 1, 0, Math.PI);
+    bsmGeo.rotateX(-Math.PI / 2);
+    this.bsmMat = new MatClass({
+      color: 0xef4444,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+    this.bsmMarkerMesh = new THREE.Mesh(bsmGeo, this.bsmMat);
+    this.bsmMarkerMesh.visible = false;
+    this.bsmMarkerMesh.renderOrder = 997;
+    this.bsmMarkerMesh.castShadow = false;
+    this.bsmMarkerMesh.receiveShadow = false;
+
+    if (this.scene) {
+      this.scene.add(this.ribbonMesh);
+      this.scene.add(this.stopLineMesh);
+      this.scene.add(this.leadMarkerMesh);
+      this.scene.add(this.bsmMarkerMesh);
+    }
+  }
+
+  update(car, driverState = {}, routePlanner = null, perceptionScanner = null) {
+    if (!this.enabled || !car || !car.position) {
+      this.setVisible(false);
