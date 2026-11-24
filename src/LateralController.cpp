@@ -88,19 +88,41 @@ LateralOutput LateralController::step(
         }
     }
 
-    // Lateral Steering Control using Stanley Lateral Tracking Controller
-    float target_x = 3.6f;
-    if (desired_lane_ == 0) {
-        target_x = 0.1f;
-    } else if (desired_lane_ == 2) {
-        target_x = 7.1f;
-    }
-    float lateral_error = ego.x - target_x;
+    // 3. Lateral Steering Control using Stanley Lateral Tracking Controller
+    float lateral_error = 0.0f;
+    float heading_error = 0.0f;
 
-    // Normalize heading error to [-pi, pi] (road heading along 5th Ave Southbound is 0.0)
-    float heading_error = ego.heading;
-    while (heading_error > 3.14159265f) heading_error -= 6.2831853f;
-    while (heading_error < -3.14159265f) heading_error += 6.2831853f;
+    if (ego.has_route) {
+        // Point-to-Point Arbitrary Road Tracking
+        float dx = ego.x - ego.ref_x;
+        float dz = ego.z - ego.ref_z;
+        float cos_ref = std::cos(ego.ref_heading);
+        float sin_ref = std::sin(ego.ref_heading);
+        // Signed cross-track error perpendicular to route heading (positive to the right)
+        float cross_track = (dx * cos_ref) - (dz * sin_ref);
+        float lane_offset = static_cast<float>(desired_lane_ - 1) * 3.5f + lateral_nudge;
+        lateral_error = cross_track - lane_offset;
+
+        // Heading error wrapped to [-pi, pi]
+        heading_error = ego.heading - ego.ref_heading;
+        while (heading_error > 3.14159265f) heading_error -= 6.2831853f;
+        while (heading_error < -3.14159265f) heading_error += 6.2831853f;
+    } else {
+        // Legacy 5th Ave Southbound Benchmark (heading = 0.0)
+        float target_x = 3.6f;
+        if (desired_lane_ == 0) {
+            target_x = 0.1f;
+        } else if (desired_lane_ == 2) {
+            target_x = 7.1f;
+        }
+        target_x += lateral_nudge;
+        lateral_error = ego.x - target_x;
+
+        // Normalize heading error to [-pi, pi] (road heading along 5th Ave Southbound is 0.0)
+        heading_error = ego.heading;
+        while (heading_error > 3.14159265f) heading_error -= 6.2831853f;
+        while (heading_error < -3.14159265f) heading_error += 6.2831853f;
+    }
 
     // Stanley controller formulation with velocity scheduling:
     // delta = -(k_psi * heading_error) - atan2(k_e * lateral_error, max(2.5, speed))
