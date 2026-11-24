@@ -9,7 +9,7 @@ use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::thread;
 use std::time::Duration;
 use tiny_http::{Header, Response, Server};
@@ -30,6 +30,14 @@ pub fn get_mime_type(path: &Path) -> &'static str {
         "bin" => "application/octet-stream",
         _ => "application/octet-stream",
     }
+}
+
+#[derive(Clone)]
+struct CachedAsset {
+    data: Arc<Vec<u8>>,
+    mime: &'static str,
+    is_gz: bool,
+    cache_control: &'static str,
 }
 
 pub struct AssetServer {
