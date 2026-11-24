@@ -298,12 +298,20 @@ export class AutonomousDriver {
     const car = this.controllerManager.entities?.car;
     if (!car) return;
 
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     this.elapsed = elapsed !== null ? elapsed : (this.elapsed || 0) + dt;
+
+    // Track intersection state from route planner
+    if (this.routePlanner && this.routePlanner.hasActiveRoute()) {
+      car.in_intersection = !!this.routePlanner._trackingRef.inIntersection;
+    } else {
+      car.in_intersection = false;
+    }
 
     // 1. Perception Radar Scan
     const trafficList = this.scanPerception(car, this.elapsed);
 
-    // 2. Transmit Real-Time Telemetry to QNX RTOS Bridge
+    // 2. Transmit Real-Time Telemetry to QNX RTOS Bridge (Zero-GC reuse packet)
     if (this.telemetryClient.isConnected()) {
       const obsPayload = this.perceptionScanner.buildObstaclePayload(car, trafficList, 24);
 
