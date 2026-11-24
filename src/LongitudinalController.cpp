@@ -93,8 +93,11 @@ LongitudinalOutput LongitudinalController::step(
         out.horn = true;
         out.horn_timer = 0.5f;
 
+        char diag_buf[160];
         if (scan.pedestrian_ahead) {
-            out.status_message = "QNX AEB: Pedestrian in path! Emergency Braking & Horn Triggered";
+            std::snprintf(diag_buf, sizeof(diag_buf),
+                          "QNX AEB: Pedestrian in path at %.1fm (lat: %.2fm, rel_v: %.1fm/s)!",
+                          scan.lead_distance, scan.lead_lat, scan.lead_rel_speed);
         } else {
             out.status_message = "QNX AEB: Collision hazard! Full Emergency Deceleration (-8.5 m/s2)";
         }
