@@ -153,3 +153,29 @@ BehaviorDecision BehaviorPlanner::plan(
                     lane_change_in_progress_ = true;
                     pending_lane_ = 1;
                     lane_change_dir_ = -1;
+                    lane_change_prep_timer_ = 1.5f;
+                    blocked_timer_ = 0.0f;
+                    decision.behavior_status = "QNX FSD: Blocker Escape -> Moving to Center Lane";
+                }
+            } else if (desired_lane_ == 0) {
+                if (!bsm.right_bsm) {
+                    lane_change_in_progress_ = true;
+                    pending_lane_ = 1;
+                    lane_change_dir_ = +1;
+                    lane_change_prep_timer_ = 1.5f;
+                    blocked_timer_ = 0.0f;
+                    decision.behavior_status = "QNX FSD: Blocker Escape -> Moving to Center Lane";
+                }
+            }
+        }
+    }
+
+    // 3. Lateral "Nudge" Clearance
+    // When a pedestrian, cyclist, or closely parked vehicle is near the lane edge (|lat| < 2.6m),
+    // apply a subtle, smooth in-lane lateral bias (±0.45m away from the hazard) just like FSD
+    // giving extra room—without crossing into an occupied adjacent lane.
+    float target_nudge = 0.0f;
+    float sinH = std::sin(ego.heading);
+    float cosH = std::cos(ego.heading);
+
+    for (const auto& obs : obstacles) {
