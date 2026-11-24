@@ -47,6 +47,8 @@ private:
     LongitudinalController longitudinal_ctrl_;
     LateralController lateral_ctrl_;
     SignalActuatorManager signal_mgr_;
+    BehaviorPlanner behavior_planner_;
+    JerkLimiter jerk_limiter_;
 };
 
 } // namespace adas
