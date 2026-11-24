@@ -222,8 +222,24 @@ export class AdasHudView {
         <span style="color:#94a3b8;">Blind Spots:</span>
         <span id="ap-bsm-text" style="font-family:monospace; font-weight:700; color:#10b981;">L: CLEAR | R: CLEAR</span>
       </div>
-      <div id="ap-status-banner" style="font-size:10.5px; color:#cbd5e1; background:rgba(30,41,59,0.7); padding:5px 8px; border-radius:6px; border-left:3px solid #06b6d4; line-height:1.3;">
+      <div id="ap-status-banner" style="font-size:10.5px; color:#cbd5e1; background:rgba(30,41,59,0.7); padding:5px 8px; border-radius:6px; border-left:3px solid #06b6d4; line-height:1.3; margin-bottom:8px;">
         Initializing QNX Safety Kernel...
+      </div>
+
+      <!-- SIL Realism & Telemetry Controls -->
+      <div style="display:flex; gap:4px; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">
+        <button id="btn-toggle-sensors" style="cursor:pointer; background:#1e293b; color:#94a3b8; border:1px solid #475569; border-radius:4px; padding:3px 6px; font-size:10px; font-weight:600;">
+          Sensors: Ground Truth
+        </button>
+        <button id="btn-toggle-surface" style="cursor:pointer; background:#1e293b; color:#94a3b8; border:1px solid #475569; border-radius:4px; padding:3px 6px; font-size:10px; font-weight:600;">
+          Road: Dry (μ=0.95)
+        </button>
+        <button id="btn-export-json" style="cursor:pointer; background:#1e293b; color:#38bdf8; border:1px solid #0284c7; border-radius:4px; padding:3px 6px; font-size:10px; font-weight:600;" title="Export 60s flight recorder log to JSON">
+          Log JSON
+        </button>
+        <button id="btn-export-csv" style="cursor:pointer; background:#1e293b; color:#38bdf8; border:1px solid #0284c7; border-radius:4px; padding:3px 6px; font-size:10px; font-weight:600;" title="Export 60s flight recorder log to CSV">
+          Log CSV
+        </button>
       </div>
     `;
 
