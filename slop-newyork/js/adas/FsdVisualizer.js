@@ -1,0 +1,32 @@
+// js/adas/FsdVisualizer.js
+// ============================================================================
+// Tesla FSD-Style 3D Path Ribbon & Minimalist Perception Overlay
+// Ultra-lightweight: 1-3 draw calls total, pre-allocated THREE.BufferGeometry
+// In-place buffer updates with ZERO GC in the 60 Hz animation loop.
+// Dynamic 16-segment optimization in LOW / i3 MODE for solid 60 FPS on Intel HD.
+// ============================================================================
+
+import * as THREE from 'three/webgpu';
+
+export class FsdVisualizer {
+  constructor(scene = null, options = {}) {
+    this.scene = scene;
+    this.perfGovernor = options.perfGovernor || null;
+    this.enabled = true;
+    this.maxSegments = 32;
+
+    // Palette: Tesla FSD Glow Colors
+    this.COLOR_TESLA_BLUE = { r: 0.0, g: 0.72, b: 1.0 };  // #00b8ff
+    this.COLOR_AMBER      = { r: 0.98, g: 0.62, b: 0.05 }; // #f59e0b
+    this.COLOR_RED        = { r: 0.95, g: 0.15, b: 0.15 }; // #ef4444
+
+    // 1. Dynamic 3D Trajectory Ribbon (Draw Call #1)
+    // Pre-allocate typed arrays for maximum 32 segments (66 vertices)
+    const vertCount = (this.maxSegments + 1) * 2;
+    this.ribbonPositions = new Float32Array(vertCount * 3);
+    this.ribbonColors = new Float32Array(vertCount * 3);
+    this.ribbonIndices = new Uint16Array(this.maxSegments * 6);
+
+    for (let i = 0; i < this.maxSegments; i++) {
+      const i0 = i * 2;
+      const i1 = i * 2 + 1;
