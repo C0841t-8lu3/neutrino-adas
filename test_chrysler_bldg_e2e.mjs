@@ -253,3 +253,35 @@ async function runChryslerBuildingE2ETest() {
   console.log('\n  Simulating closed-loop drive to Chrysler Building destination...');
   let ego = {
     x: waypoints[0].x,
+    y: 0.0,
+    z: waypoints[0].z,
+    speed: 10.0,
+    heading: waypoints[0].heading,
+    steer_angle: 0.0
+  };
+
+  let arrived = false;
+  let currIdx = 0;
+  const maxDriveSteps = 300;
+
+  for (let s = 0; s < maxDriveSteps; s++) {
+    const ref = planner.getTrackingReference(ego, ego.heading, ego.speed);
+
+    const res = await sendTelemetry({
+      x: Math.round(ego.x * 100) / 100,
+      y: 0.0,
+      z: Math.round(ego.z * 100) / 100,
+      speed: Math.round(ego.speed * 100) / 100,
+      heading: Math.round(ego.heading * 1000) / 1000,
+      steer_angle: Math.round(ego.steer_angle * 1000) / 1000,
+      current_lane: 1, target_lane: 1, dt: 0.016,
+      obs: [],
+      has_route: 1,
+      ref_x: Math.round(ref.refX * 100) / 100,
+      ref_z: Math.round(ref.refZ * 100) / 100,
+      ref_heading: Math.round(ref.refHeading * 1000) / 1000,
+      path_curvature: Math.round(ref.curvature * 1000) / 1000,
+      dist_to_goal: Math.round(ref.distToGoal * 10) / 10,
+      turn_signal_hint: ref.turnSignalHint,
+      in_intersection: ref.inIntersection ? 1 : 0,
+      dist_to_next_turn: Math.round(ref.nextTurnDistance * 10) / 10,
