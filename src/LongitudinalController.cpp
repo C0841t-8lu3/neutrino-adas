@@ -99,8 +99,11 @@ LongitudinalOutput LongitudinalController::step(
                           "QNX AEB: Pedestrian in path at %.1fm (lat: %.2fm, rel_v: %.1fm/s)!",
                           scan.lead_distance, scan.lead_lat, scan.lead_rel_speed);
         } else {
-            out.status_message = "QNX AEB: Collision hazard! Full Emergency Deceleration (-8.5 m/s2)";
+            std::snprintf(diag_buf, sizeof(diag_buf),
+                          "QNX AEB: Hazard Type %d at %.1fm (lat: %.2fm, TTC: %.1fs, rel_v: %.1fm/s)!",
+                          scan.lead_type, scan.lead_distance, scan.lead_lat, scan.time_to_collision, scan.lead_rel_speed);
         }
+        out.status_message = diag_buf;
     }
     // Adaptive Cruise Control (ACC) & Intersection Stop-Line Deceleration
     else if (scan.lead_distance < 85.0f) {
