@@ -36,3 +36,41 @@ export class SensorNoiseModel {
       t = Math.imul(t ^ (t >>> 15), t | 1);
       t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  seed(newSeed) {
+    this.seedValue = newSeed;
+    this.rng = this._createMulberry32(newSeed);
+  }
+
+  gaussian(mean = 0, std = 1) {
+    let u = 0, v = 0;
+    while (u === 0) u = this.rng();
+    while (v === 0) v = this.rng();
+    const z0 = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    return mean + z0 * std;
+  }
+
+  setRealistic(enabled) {
+    this.enabled = Boolean(enabled);
+    if (!this.enabled) {
+      this._tracks.clear();
+    }
+  }
+
+  setTracker(enabled) {
+    this.trackerEnabled = Boolean(enabled);
+  }
+
+  setDropoutRate(rate) {
+    this.dropoutRate = Math.max(0.0, Math.min(1.0, rate));
+  }
+
+  reset() {
+    this._tracks.clear();
+    this.lastDroppedCount = 0;
+    this.lastOccludedCount = 0;
+    this.lastRawCount = 0;
+    this.lastFilteredCount = 0;
+    this.seed(this.seedValue);
