@@ -312,3 +312,34 @@ export class RoutePlanner {
       const streetLen = Math.max(0, sEnd - sStart);
       const steps = Math.max(1, Math.ceil(streetLen / sampleStep));
 
+      for (let i = 0; i <= steps; i++) {
+        const s = sStart + (i / steps) * streetLen;
+        const rx = edge.rx !== undefined ? edge.rx : -edge.dz;
+        const rz = edge.rz !== undefined ? edge.rz : edge.dx;
+        const x = edge.sx + edge.dx * s + rx * (typeof laneOffset === 'number' ? laneOffset : 0);
+        const z = edge.sz + edge.dz * s + rz * (typeof laneOffset === 'number' ? laneOffset : 0);
+        const heading = Math.atan2(edge.dx, edge.dz);
+
+        if (waypoints.length > 0) {
+          const prev = waypoints[waypoints.length - 1];
+          const d = Math.hypot(x - prev.x, z - prev.z);
+          cumDist += d;
+        }
+
+        waypoints.push({
+          x,
+          z,
+          heading,
+          curvature: 0.0,
+          speedLimit: edge.speedLimit || 14.0,
+          distFromStart: cumDist,
+          isIntersection: false,
+          edgeId: edge.id,
+          streetName: edge.name || ''
+        });
+      }
+
+      // 2. Sample intersection turn curve to next edge
+      if (k < edgePath.length - 1 && connector && curvePoint) {
+        const nextEdge = edgePath[k + 1].edge;
+        let fromLaneIdx = laneIdx;
