@@ -337,3 +337,46 @@ export class ScenarioInjector {
     if (typeof document === 'undefined' || typeof document.createElement !== 'function' || !document.body) return;
 
     const panel = document.createElement('div');
+    panel.id = 'adas-scenario-panel';
+    panel.style.position = 'fixed';
+    panel.style.bottom = '24px';
+    panel.style.left = '16px';
+    panel.style.zIndex = '999';
+    panel.style.padding = '8px 12px';
+    panel.style.borderRadius = '12px';
+    panel.style.background = 'rgba(15, 23, 42, 0.88)';
+    panel.style.backdropFilter = 'blur(10px)';
+    panel.style.border = '1px solid rgba(255, 255, 255, 0.16)';
+    panel.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.5)';
+    panel.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+    panel.style.fontSize = '11px';
+    panel.style.color = '#e2e8f0';
+    panel.style.display = 'flex';
+    panel.style.flexDirection = 'column';
+    panel.style.gap = '6px';
+    panel.style.userSelect = 'none';
+
+    document.body.appendChild(panel);
+    this.panelElement = panel;
+    this.updatePanel();
+  }
+
+  updatePanel() {
+    if (!this.panelElement) return;
+
+    const activeText = this.activeScenario
+      ? `<span style="color:#f59e0b;font-weight:700;">[RUNNING: ${this.activeScenario.name} (${Math.max(0, this.activeScenario.duration - this.scenarioTimer).toFixed(1)}s)]</span>`
+      : `<span style="color:#10b981;">[STATUS: ${this.lastStatus}]</span>`;
+
+    const unpredText = this.unpredictableEnabled
+      ? '<span style="color:#ef4444;font-weight:700;">ON</span>'
+      : '<span style="color:#94a3b8;">OFF</span>';
+
+    this.panelElement.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <span style="font-weight:700;color:#38bdf8;">TEST SCENARIOS</span>
+        ${activeText}
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">
+        <button id="scen-btn-1" style="background:#1e293b;border:1px solid #475569;color:#e2e8f0;padding:3px 7px;border-radius:6px;cursor:pointer;font-size:10px;">1: Cut-In</button>
+        <button id="scen-btn-2" style="background:#1e293b;border:1px solid #475569;color:#e2e8f0;padding:3px 7px;border-radius:6px;cursor:pointer;font-size:10px;">2: Jaywalk</button>
