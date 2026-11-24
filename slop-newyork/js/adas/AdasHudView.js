@@ -132,7 +132,13 @@ export class AdasHudView {
     hud.style.pointerEvents = 'auto';
 
     hud.innerHTML = `
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <!-- QNX Safety Watchdog Banner -->
+      <div id="qnx-watchdog-banner" style="display:none; background:#dc2626; color:#ffffff; font-weight:800; font-size:11px; padding:6px 10px; border-radius:6px; margin-bottom:8px; text-align:center; box-shadow:0 0 14px #ef4444; letter-spacing:0.04em;">
+        ⚠️ QNX WATCHDOG FAULT — SAFE STOP
+      </div>
+
+      <!-- Header: QNX Kernel Indicator & Autopilot State Toggle -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
         <div style="display:flex; align-items:center; gap:6px;">
           <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;" id="qnx-dot"></span>
           <span style="font-weight:800; letter-spacing:0.06em; font-size:11px; text-transform:uppercase; color:#38bdf8;">
@@ -140,8 +146,50 @@ export class AdasHudView {
           </span>
         </div>
         <button id="btn-toggle-ap" style="cursor:pointer; background:#06b6d4; color:#fff; border:none; border-radius:6px; padding:3px 10px; font-size:11px; font-weight:700; transition:all 0.2s;">
-          ON [P]
+          ON
         </button>
+      </div>
+
+      <!-- Tesla FSD Driving Profile Selector (CHILL | STANDARD | HURRY) [P] -->
+      <div id="fsd-profile-container" style="display:flex; background:rgba(0,0,0,0.45); border-radius:10px; padding:3px; border:1px solid rgba(255,255,255,0.12); margin-bottom:10px; gap:2px;">
+        <button id="btn-profile-chill" style="flex:1; cursor:pointer; background:transparent; color:#94a3b8; border:none; border-radius:8px; padding:4px 0; font-size:10px; font-weight:800; letter-spacing:0.04em; transition:all 0.2s;" title="Chill Mode: 1.8s headway, gentle acceleration">
+          CHILL
+        </button>
+        <button id="btn-profile-standard" style="flex:1; cursor:pointer; background:#0284c7; color:#ffffff; border:none; border-radius:8px; padding:4px 0; font-size:10px; font-weight:800; letter-spacing:0.04em; transition:all 0.2s; box-shadow:0 0 10px rgba(2,132,199,0.5);" title="Standard Mode: 1.3s headway, proactive passing">
+          STANDARD
+        </button>
+        <button id="btn-profile-hurry" style="flex:1; cursor:pointer; background:transparent; color:#94a3b8; border:none; border-radius:8px; padding:4px 0; font-size:10px; font-weight:800; letter-spacing:0.04em; transition:all 0.2s;" title="Hurry Mode: 1.0s headway, decisive assertiveness [P]">
+          HURRY
+        </button>
+      </div>
+
+      <!-- Tesla FSD Status Strip: Icon, Speed km/h + Limit Sign, Next Turn Pill, Vis Toggle -->
+      <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(2,132,199,0.12); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:6px 10px; margin-bottom:10px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div id="fsd-active-badge" style="display:flex; align-items:center; gap:4px; font-weight:900; font-size:11px; color:#38bdf8; letter-spacing:0.04em;">
+            <span style="font-size:14px; color:#38bdf8;">⚡</span> FSD
+          </div>
+          <div style="display:flex; align-items:baseline; gap:3px;">
+            <span id="fsd-speed-kmh" style="font-family:monospace; font-size:18px; font-weight:900; color:#ffffff;">0</span>
+            <span style="font-size:10px; color:#94a3b8; font-weight:700;">km/h</span>
+          </div>
+          <!-- Speed limit sign -->
+          <div id="fsd-speed-limit-badge" style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; width:28px; height:32px; border:1.5px solid #000; border-radius:4px; background:#fff; color:#000; font-weight:900; line-height:1; box-shadow:0 1px 3px rgba(0,0,0,0.5);" title="Speed Limit (km/h)">
+            <span style="font-size:6px; font-weight:900;">LIMIT</span>
+            <span id="fsd-speed-limit-val" style="font-size:12px; font-weight:900;">50</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <!-- Next Turn Pill -->
+          <div id="fsd-turn-pill" style="display:flex; align-items:center; gap:4px; background:rgba(15,23,42,0.8); border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:3px 7px; font-size:10px; font-weight:700; color:#e2e8f0;">
+            <span id="fsd-turn-icon" style="color:#38bdf8;">⬆</span>
+            <span id="fsd-turn-text">Follow Road</span>
+          </div>
+          <!-- FSD 3D Visualizer Toggle Button -->
+          <button id="btn-toggle-fsd-vis" style="cursor:pointer; background:#1e293b; color:#38bdf8; border:1px solid #0284c7; border-radius:6px; padding:3px 7px; font-size:10px; font-weight:700; transition:all 0.2s;" title="Toggle 3D Tesla FSD Trajectory Ribbon [V]">
+            Vis [V]: ON
+          </button>
+        </div>
       </div>
 
       <!-- Turn Signal and BSM Status Bar -->
