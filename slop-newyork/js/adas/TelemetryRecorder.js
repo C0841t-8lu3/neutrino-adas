@@ -137,3 +137,38 @@ export class TelemetryRecorder {
     const rmsLaneOffset = Math.sqrt(sumSqOffset / n);
 
     rtts.sort((a, b) => a - b);
+    const p50 = rtts.length > 0 ? rtts[Math.floor(rtts.length * 0.50)] : 0;
+    const p95 = rtts.length > 0 ? rtts[Math.floor(rtts.length * 0.95)] : 0;
+
+    const duration = n > 1 ? Math.max(0, frames[n - 1].time - frames[0].time) : 0;
+
+    return {
+      totalFrames: n,
+      durationSeconds: Math.round(duration * 10) / 10,
+      rmsLaneOffsetM: Math.round(rmsLaneOffset * 1000) / 1000,
+      minTtcS: Math.round(this.minTtcObserved * 10) / 10,
+      maxBrakeCmd: Math.round(this.maxBrakeObserved * 100) / 100,
+      aebEvents: this.totalAebEvents,
+      bsmAborts: this.totalBsmAborts,
+      collisions: this.totalCollisions,
+      qnxRttP50Us: p50,
+      qnxRttP95Us: p95
+    };
+  }
+
+  exportJson() {
+    const scorecard = this.getScorecard();
+    const frames = this.getOrderedFrames();
+    const data = {
+      generator: 'QNX 8.0 ADAS Simulator Flight Recorder',
+      timestamp: new Date().toISOString(),
+      scorecard,
+      samples: frames
+    };
+
+    const jsonStr = JSON.stringify(data, null, 2);
+    this._triggerDownload(jsonStr, `adas_flight_recorder_${Date.now()}.json`, 'application/json');
+    return jsonStr;
+  }
+
+  exportCsv() {
