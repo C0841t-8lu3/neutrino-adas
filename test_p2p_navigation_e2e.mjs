@@ -27,3 +27,32 @@ async function runEndToEndTest() {
   const pointB = { x: 260.0, z: 650.0 };
 
   console.log(`\n[2/4] Planning A* Route:`);
+  console.log(`  Point A (Origin):      (${pointA.x.toFixed(1)}, ${pointA.z.toFixed(1)})`);
+  console.log(`  Point B (Destination): (${pointB.x.toFixed(1)}, ${pointB.z.toFixed(1)})`);
+
+  const waypoints = planner.planRoute(pointA, headingA, pointB);
+  if (!waypoints || waypoints.length === 0) {
+    throw new Error('A* Route Planner failed to find a valid road path between Point A and Point B!');
+  }
+
+  console.log(`[Route Planner] SUCCESS: Generated ${waypoints.length} waypoints.`);
+  console.log(`  Total Path Distance:   ${planner.totalDistance.toFixed(1)} meters`);
+  console.log(`  Origin:                "${planner.originName}"`);
+  console.log(`  Destination:           "${planner.destinationName}"`);
+
+  // Verify waypoints continuity
+  let turnDetected = false;
+  let maxCurv = 0;
+  for (let i = 1; i < waypoints.length; i++) {
+    const wp = waypoints[i];
+    const prev = waypoints[i - 1];
+    const stepDist = Math.hypot(wp.x - prev.x, wp.z - prev.z);
+    if (stepDist > 15.0) {
+      throw new Error(`Discontinuous waypoint jump: ${stepDist.toFixed(1)}m at index ${i}`);
+    }
+    if (wp.curvature > 0.03) {
+      turnDetected = true;
+      if (wp.curvature > maxCurv) maxCurv = wp.curvature;
+    }
+  }
+  console.log(`  Turn Curvature Check:  Max Curvature = ${maxCurv.toFixed(4)} rad/m (Turns detected: ${turnDetected})`);
