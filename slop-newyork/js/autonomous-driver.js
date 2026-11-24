@@ -1,7 +1,8 @@
 // js/autonomous-driver.js
 // ============================================================================
 // QNX 8.0 NEUTRINO RTOS - ADAS LEVEL 3 AUTONOMOUS DRIVING & SAFETY SYSTEM
-// Thin OOP Orchestrator coordinating Perception, Telemetry, HUD, Audio & Mirrors
+// Thin OOP Orchestrator coordinating Perception, Telemetry, HUD, Audio,
+// Mirrors, Actuator Dynamics, Safety Watchdog, Scenarios & Flight Recorder
 // ============================================================================
 
 import { QnxTelemetryClient } from './adas/QnxTelemetryClient.js';
@@ -9,6 +10,11 @@ import { PerceptionScanner } from './adas/PerceptionScanner.js';
 import { SideMirrorRenderer } from './adas/SideMirrorRenderer.js';
 import { AdasHudView } from './adas/AdasHudView.js';
 import { HornAudioEngine } from './adas/HornAudioEngine.js';
+import { RoutePlanner } from './adas/RoutePlanner.js';
+import { ActuatorDynamics } from './adas/ActuatorDynamics.js';
+import { TelemetryRecorder } from './adas/TelemetryRecorder.js';
+import { ScenarioInjector } from './adas/ScenarioInjector.js';
+import { FsdVisualizer } from './adas/FsdVisualizer.js';
 
 export class AutonomousDriver {
   constructor(controllerManager, trafficSystem, scene = null) {
@@ -21,6 +27,9 @@ export class AutonomousDriver {
     this.statusMessage = 'Connecting to QNX Neutrino RTOS (SDP 8.0)...';
     this.qnxConnected = false;
     this.lastPacketTime = 0;
+    this.lastQnxPacketTime = 0;
+    this.watchdogFault = false;
+    this.seq = 0;
     this.rttMs = 0;
 
     // Navigation and Kinematics
