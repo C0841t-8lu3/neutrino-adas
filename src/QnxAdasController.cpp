@@ -69,7 +69,25 @@ AdasOutput QnxAdasController::step(const VehicleState& ego, const std::vector<Ob
     // 4. Lateral control with in-lane lateral nudge and pre-turn positioning
     LateralOutput lat = lateral_ctrl_.step(ego, fwd, bsm, dt, plan.target_lane, plan.lateral_nudge);
 
-    // 5. Arbitrate hazard and horn actuators
+    // 5. Longitudinal control with predictive cornering limit & intersection creep
+    LongitudinalOutput lon = longitudinal_ctrl_.step(ego, fwd, dt, plan.speed_limit_override);
+
+    // 6. S-Curve Jerk Limiting on service accel/brake and steering rate (Instant 100% bypass on AEB)
+    float final_throttle = 0.0f;
+    float final_brake = 0.0f;
+    float final_steer = 0.0f;
+    jerk_limiter_.process(
+        lon.throttle,
+        lon.brake,
+        lat.steer_cmd,
+        lon.mode,
+        dt,
+        final_throttle,
+        final_brake,
+        final_steer
+    );
+
+    // 7. Arbitrate hazard and horn actuators
     bool hazard = lat.hazard || lon.hazard;
     bool horn = lat.horn || lon.horn;
     if (lat.horn_timer > 0.0f) {
@@ -79,7 +97,18 @@ AdasOutput QnxAdasController::step(const VehicleState& ego, const std::vector<Ob
         signal_mgr_.triggerHorn(lon.horn_timer);
     }
 
-    // 6. Actuator and light signal synthesis
+    // 8. Actuator and light signal synthesis
+    bool lane_change_sig_active = lat.lane_change_active || plan.lane_change_blinker;
+    int lane_change_dir = plan.lane_change_direction;
+    if (lane_change_dir == 0 && lat.lane_change_active) {
+        lane_change_dir = (lat.desired_lane < ego.current_lane) ? -1 : ((lat.desired_lane > ego.current_lane) ? 1 : 0);
+    }
+    // Cancel lane change signal if within 0.35m of target lane center
+    if (lat.lane_change_active && std::abs(lat.lateral_error) <= 0.35f && ego.current_lane == lat.desired_lane) {
+        lane_change_sig_active = false;
+        lane_change_dir = 0;
+    }
+
     SignalOutput sig = signal_mgr_.computeSignals(
         hazard,
         horn,
