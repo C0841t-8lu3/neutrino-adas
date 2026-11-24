@@ -77,13 +77,12 @@ export class SideMirrorRenderer {
     ctx.setLineDash([]);
 
     // 3. Project Traffic Vehicles onto Mirror Glass
-    const px = car.position.x;
-    const pz = car.position.z;
-
-    const traffic = [];
+    this._trafficScratch.length = 0;
     if (trafficSystem?.cars) {
-      for (const c of trafficSystem.cars) {
-        if (Number.isFinite(c.x) && Number.isFinite(c.z)) traffic.push(c);
+      const cars = trafficSystem.cars;
+      for (let i = 0; i < cars.length; i++) {
+        const c = cars[i];
+        if (Number.isFinite(c.x) && Number.isFinite(c.z)) this._trafficScratch.push(c);
       }
     }
     if (trafficSystem?.buses) {
