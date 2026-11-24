@@ -126,3 +126,35 @@ async function runChryslerBuildingE2ETest() {
     const ref65m = planner.getTrackingReference(ego65m, ego65m.heading, 8.0);
     assert.equal(ref65m.turnSignalHint, 0, 'Turn signal MUST NOT activate 65m too early');
     console.log(`  [PASS] Blinker timing verified: OFF at ${ref65m.nextTurnDistance}m ahead, active at ${ref34m.nextTurnDistance}m ahead.`);
+  }
+
+  // 4c. Auto-Cancel Blinker Post-Turn
+  {
+    // Waypoint 92 is immediately after the turn at 82-88, aligned on the new street
+    const postTurnWp = waypoints[92];
+    const refPost = planner.getTrackingReference(postTurnWp, postTurnWp.heading, 8.0);
+    assert.equal(refPost.inIntersection, false);
+    assert.equal(refPost.turnSignalHint, 0, 'Turn signal MUST auto-cancel once exited intersection curve and aligned');
+    console.log('  [PASS] Blinker auto-cancels immediately upon completing intersection curve.');
+  }
+
+  // 4d. Intersection Box-Clearing Rule ("Never Stop Inside an Intersection")
+  {
+    const turnWp = waypoints.find(wp => wp.isIntersection);
+    // Simulate being inside intersection with red light signal ahead
+    const res = await sendTelemetry({
+      x: turnWp.x, y: 0.0, z: turnWp.z,
+      speed: 6.5, heading: turnWp.heading, steer_angle: 0.05,
+      current_lane: 1, target_lane: 1, dt: 0.016,
+      obs: [{ x: turnWp.x + 3.0, z: turnWp.z + 3.0, speed: 0.0, type: 3 }], // red stop line obstacle
+      has_route: 1, ref_x: turnWp.x, ref_z: turnWp.z, ref_heading: turnWp.heading,
+      path_curvature: turnWp.curvature, dist_to_goal: 300.0, turn_signal_hint: 0,
+      in_intersection: 1, dist_to_next_turn: 0.0, pre_turn_lane_hint: 0
+    });
+    assert.ok(res.brake < 0.2, 'Must NOT emergency/stop inside intersection box for red light');
+    assert.notEqual(res.drive_mode, 6, 'Must NOT enter STOPPED mode inside intersection box');
+    console.log('  [PASS] Intersection Box-Clearing rule obeyed: car smoothly clears intersection without stopping.');
+  }
+
+  // 5. VERIFY PRIORITY 2: Eliminate Phantom Sudden Stops
+  console.log('\n[5/5] Executing Phantom Brake Elimination & Perception Filter Verifications...');
