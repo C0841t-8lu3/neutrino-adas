@@ -66,3 +66,25 @@ void JerkLimiter::process(
     // Small deadband to prevent microscopic floating creep near zero
     if (std::abs(current_accel_) < 0.015f && target_accel == 0.0f) {
         current_accel_ = 0.0f;
+    }
+
+    // Translate smoothed acceleration back into throttle / service brake commands
+    if (current_accel_ >= 0.0f) {
+        out_throttle = (config_.max_accel > 0.0f) ? std::min(1.0f, current_accel_ / config_.max_accel) : 0.0f;
+        out_brake = 0.0f;
+    } else {
+        out_throttle = 0.0f;
+        out_brake = (config_.max_service_brake > 0.0f) ? std::min(1.0f, -current_accel_ / config_.max_service_brake) : 0.0f;
+    }
+
+    // 3. Lateral Steering Rate Smoothing
+    float max_steer_rate = (config_.max_steer_rate > 0.0f) ? config_.max_steer_rate : 1.6f;
+    float ds_max = max_steer_rate * effective_dt;
+
+    float ds = raw_steer - current_steer_;
+    ds = std::max(-ds_max, std::min(ds_max, ds));
+    current_steer_ += ds;
+    out_steer = current_steer_;
+}
+
+} // namespace adas
