@@ -112,9 +112,11 @@ AdasOutput QnxAdasController::step(const VehicleState& ego, const std::vector<Ob
     SignalOutput sig = signal_mgr_.computeSignals(
         hazard,
         horn,
-        lat.lane_change_active,
+        lane_change_sig_active,
         lat.lateral_error,
-        lon.brake
+        final_brake,
+        ego.turn_signal_hint,
+        lane_change_dir
     );
 
     // 7. Assemble final output
