@@ -17,10 +17,13 @@ void QnxAdasController::reset() {
     longitudinal_ctrl_.reset();
     lateral_ctrl_.reset();
     signal_mgr_.reset();
+    behavior_planner_.reset();
+    jerk_limiter_.reset();
 }
 
 void QnxAdasController::setConfig(const AdasConfig& config) {
     config_ = config;
+    current_profile_ = config.profile;
     longitudinal_ctrl_.setConfig(config);
     lateral_ctrl_.setConfig(config);
 }
