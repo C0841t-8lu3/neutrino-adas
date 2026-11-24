@@ -74,3 +74,42 @@ export class SensorNoiseModel {
     this.lastRawCount = 0;
     this.lastFilteredCount = 0;
     this.seed(this.seedValue);
+  }
+
+  /**
+   * Applies realistic sensor degradation: line-of-sight occlusion, range noise,
+   * stochastic packet dropouts, and optional Alpha-Beta state estimation.
+   */
+  process(rawObstacles, ego, dt = 0.016) {
+    this.lastRawCount = rawObstacles ? rawObstacles.length : 0;
+    if (!this.enabled || !rawObstacles || rawObstacles.length === 0) {
+      this.lastDroppedCount = 0;
+      this.lastOccludedCount = 0;
+      this.lastFilteredCount = this.lastRawCount;
+      return rawObstacles || [];
+    }
+
+    const egoX = ego.position ? ego.position.x : (ego.x || 0);
+    const egoZ = ego.position ? ego.position.z : (ego.z || 0);
+    const egoHeading = ego.heading || 0;
+    const cosH = Math.cos(egoHeading);
+    const sinH = Math.sin(egoHeading);
+
+    // 1. Transform obstacles into Ego-Relative Polar Coordinates
+    const candidates = [];
+    for (let i = 0; i < rawObstacles.length; i++) {
+      const o = rawObstacles[i];
+      const dx = o.x - egoX;
+      const dz = o.z - egoZ;
+
+      // Longitudinal (forward) and lateral (rightward) in ego frame
+      const forwardDist = (dx * sinH) + (dz * cosH);
+      const lateralDist = (dx * cosH) - (dz * sinH);
+
+      // Radar range and relative azimuth
+      const range = Math.hypot(forwardDist, lateralDist);
+      if (forwardDist < -2.0 || range > this.maxRadarRange) continue; // Behind ego or beyond max range
+
+      const azimuth = Math.atan2(lateralDist, forwardDist);
+      if (Math.abs(azimuth) > this.maxRadarFovRad) continue; // Outside FOV
+
