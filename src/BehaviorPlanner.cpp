@@ -127,3 +127,29 @@ BehaviorDecision BehaviorPlanner::plan(
         if (is_blocked) {
             blocked_timer_ += dt;
         } else {
+            blocked_timer_ = std::max(0.0f, blocked_timer_ - dt * 2.0f);
+        }
+
+        float escape_threshold = (config_.profile == DriveProfile::HURRY) ? 1.5f : 2.5f;
+        if (blocked_timer_ >= escape_threshold && !lane_change_in_progress_ && lane_change_cooldown_ <= 0.0f) {
+            if (desired_lane_ == 1) {
+                if (!bsm.left_bsm) {
+                    lane_change_in_progress_ = true;
+                    pending_lane_ = 0;
+                    lane_change_dir_ = -1;
+                    lane_change_prep_timer_ = 1.5f;
+                    blocked_timer_ = 0.0f;
+                    decision.behavior_status = "QNX FSD: Proactive Overtake -> Passing on Left";
+                } else if (!bsm.right_bsm) {
+                    lane_change_in_progress_ = true;
+                    pending_lane_ = 2;
+                    lane_change_dir_ = +1;
+                    lane_change_prep_timer_ = 1.5f;
+                    blocked_timer_ = 0.0f;
+                    decision.behavior_status = "QNX FSD: Proactive Overtake -> Passing on Right";
+                }
+            } else if (desired_lane_ == 2) {
+                if (!bsm.left_bsm) {
+                    lane_change_in_progress_ = true;
+                    pending_lane_ = 1;
+                    lane_change_dir_ = -1;
