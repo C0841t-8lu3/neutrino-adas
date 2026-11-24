@@ -84,3 +84,32 @@ async function runEndToEndTest() {
   let currStepIdx = 0;
   const maxSteps = 200;
 
+  for (let step = 0; step < maxSteps; step++) {
+    const ref = planner.getTrackingReference(ego, ego.heading, ego.speed);
+
+    // Build navigation telemetry packet
+    const telemetry = {
+      x: Math.round(ego.x * 100) / 100,
+      y: 0.0,
+      z: Math.round(ego.z * 100) / 100,
+      speed: Math.round(ego.speed * 100) / 100,
+      heading: Math.round(ego.heading * 1000) / 1000,
+      steer_angle: Math.round(ego.steer_angle * 1000) / 1000,
+      current_lane: 1,
+      target_lane: 1,
+      dt: 0.016,
+      obs: [],
+      has_route: 1,
+      ref_x: Math.round(ref.refX * 100) / 100,
+      ref_z: Math.round(ref.refZ * 100) / 100,
+      ref_heading: Math.round(ref.refHeading * 1000) / 1000,
+      path_curvature: Math.round(ref.curvature * 1000) / 1000,
+      dist_to_goal: Math.round(ref.distToGoal * 10) / 10,
+      turn_signal_hint: ref.turnSignalHint
+    };
+
+    const response = await new Promise((resolve) => {
+      ws.onmessage = (event) => {
+        resolve(JSON.parse(typeof event.data === 'string' ? event.data : event.data.toString()));
+      };
+      ws.send(JSON.stringify(telemetry));
