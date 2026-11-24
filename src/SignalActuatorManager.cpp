@@ -35,8 +35,11 @@ SignalOutput SignalActuatorManager::computeSignals(
     bool horn_req,
     bool lane_change_active,
     float lateral_error,
-    float brake
+    float brake,
+    int turn_signal_hint,
+    int lane_change_direction
 ) {
+    (void)lateral_error;
     SignalOutput out;
 
     bool left_blinker = false;
