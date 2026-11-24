@@ -10,12 +10,75 @@ import { SensorNoiseModel } from './SensorNoiseModel.js';
 export class PerceptionScanner {
   constructor(trafficSystem = null) {
     this.trafficSystem = trafficSystem;
+    this.sensorNoiseModel = new SensorNoiseModel({ enabled: false, trackerEnabled: true });
     this.leadDist = 999;
     this.leadRelSpeed = 0;
     this.closestObstacleName = null;
     this.ttc = 999;
     this.activeRedStopObstacle = null;
     this._lastLoggedSignal = null;
+
+    // --- ZERO-GC REUSABLE POOLS ---
+    // 1. Reusable traffic list and vehicle pool
+    this._trafficList = [];
+    this._trafficPool = [];
+    this._poolCapacity = 128;
+    for (let i = 0; i < this._poolCapacity; i++) {
+      this._trafficPool.push({
+        x: 0,
+        z: 0,
+        v: 0,
+        half: 2.0,
+        kind: 'Car',
+        isBus: false,
+        isPedestrian: false,
+        vx: 0,
+        vz: 0
+      });
+    }
+
+    // 2. Pre-allocated virtual red-light barrier obstacle
+    this._redStopObstacle = {
+      x: 0,
+      z: 0,
+      heading: 0,
+      v: 0.0,
+      half: 1.0,
+      kind: 'Red Light Stop Line',
+      isBus: false
+    };
+
+    // 3. Reusable scan result struct
+    this._scanResult = {
+      trafficList: this._trafficList,
+      leadDist: 999,
+      leadRelSpeed: 0,
+      closestObstacleName: null,
+      ttc: 999,
+      activeRedStopObstacle: null
+    };
+
+    // 4. Pre-allocated sorting and payload pools
+    this._sortScratch = [];
+    for (let i = 0; i < this._poolCapacity; i++) {
+      this._sortScratch.push({
+        traffic: null,
+        distSq: 0
+      });
+    }
+
+    this._obstaclePayload = [];
+    this._payloadPool = [];
+    for (let i = 0; i < 32; i++) {
+      this._payloadPool.push({
+        x: 0,
+        z: 0,
+        speed: 0,
+        type: 0,
+        vx: 0,
+        vz: 0
+      });
+    }
   }
 
   setTrafficSystem(trafficSystem) {
