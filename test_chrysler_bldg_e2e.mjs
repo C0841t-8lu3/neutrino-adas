@@ -189,3 +189,35 @@ async function runChryslerBuildingE2ETest() {
     const pedX = wp.x + cos * 2.2 + sin * 12.0;
     const pedZ = wp.z - sin * 2.2 + cos * 12.0;
 
+    const res = await sendTelemetry({
+      x: wp.x, y: 0.0, z: wp.z,
+      speed: 10.0, heading: wp.heading, steer_angle: 0.0,
+      current_lane: 1, target_lane: 1, dt: 0.016,
+      obs: [{ x: pedX, z: pedZ, speed: 1.2, type: 2, vx: sin * 1.2, vz: cos * 1.2 }],
+      has_route: 1, ref_x: wp.x, ref_z: wp.z, ref_heading: wp.heading,
+      path_curvature: 0.0, dist_to_goal: 380.0, turn_signal_hint: 0,
+      in_intersection: 0, dist_to_next_turn: 100.0, pre_turn_lane_hint: 0
+    });
+    assert.equal(res.drive_mode, 1, 'Must remain in CRUISING mode past sidewalk pedestrians');
+    assert.equal(res.brake, 0.0, 'Sidewalk pedestrian must NEVER trigger AEB or brake checks');
+    console.log('  [PASS] Sidewalk pedestrian safely ignored by corridor filter.');
+  }
+
+  // 5c. True Hazard (Jaywalker actively entering lane): triggers AEB with explainable status
+  {
+    const wp = waypoints[14];
+    const sin = Math.sin(wp.heading);
+    const cos = Math.cos(wp.heading);
+    // Pedestrian in center of ego lane 6m ahead
+    const jaywalkerX = wp.x + sin * 6.0;
+    const jaywalkerZ = wp.z + cos * 6.0;
+
+    const res = await sendTelemetry({
+      x: wp.x, y: 0.0, z: wp.z,
+      speed: 9.0, heading: wp.heading, steer_angle: 0.0,
+      current_lane: 1, target_lane: 1, dt: 0.016,
+      obs: [{ x: jaywalkerX, z: jaywalkerZ, speed: 0.5, type: 2, vx: -cos * 0.5, vz: sin * 0.5 }],
+      has_route: 1, ref_x: wp.x, ref_z: wp.z, ref_heading: wp.heading,
+      path_curvature: 0.0, dist_to_goal: 350.0, turn_signal_hint: 0,
+      in_intersection: 0, dist_to_next_turn: 90.0, pre_turn_lane_hint: 0
+    });
