@@ -217,9 +217,16 @@ export class AutonomousDriver {
     console.log(`[AutonomousDriver] Requested Lane: ${newLane} (Current: ${this.currentLaneIndex})`);
   }
 
-  toggle() {
+  enable() {
     this.initAudio();
-    this.enabled = !this.enabled;
+    this.enabled = true;
+    this.updateHud();
+    console.log('[AutonomousDriver] Autopilot: ENGAGED');
+  }
+
+  toggle(forceState = null) {
+    this.initAudio();
+    this.enabled = forceState !== null ? Boolean(forceState) : !this.enabled;
     this.updateHud();
     if (!this.enabled) {
       this.controllerManager.keys.forward = false;
