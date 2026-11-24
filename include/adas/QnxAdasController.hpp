@@ -7,6 +7,8 @@
 #include "adas/LongitudinalController.hpp"
 #include "adas/LateralController.hpp"
 #include "adas/SignalActuatorManager.hpp"
+#include "adas/BehaviorPlanner.hpp"
+#include "adas/JerkLimiter.hpp"
 #include <memory>
 #include <vector>
 
