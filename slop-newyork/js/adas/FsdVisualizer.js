@@ -314,3 +314,35 @@ export class FsdVisualizer {
     }
   }
 
+  setVisible(visible) {
+    this.ribbonMesh.visible = visible;
+    this.stopLineMesh.visible = visible;
+    this.leadMarkerMesh.visible = visible;
+    this.bsmMarkerMesh.visible = visible;
+  }
+
+  toggle() {
+    this.enabled = !this.enabled;
+    if (!this.enabled) {
+      this.setVisible(false);
+    }
+    return this.enabled;
+  }
+
+  dispose() {
+    if (this.ribbonMesh && this.scene) {
+      this.scene.remove(this.ribbonMesh);
+      this.scene.remove(this.stopLineMesh);
+      this.scene.remove(this.leadMarkerMesh);
+      this.scene.remove(this.bsmMarkerMesh);
+      this.ribbonGeo.dispose();
+      this.ribbonMat.dispose();
+      this.stopLineMesh.geometry.dispose();
+      this.stopMat.dispose();
+      this.leadMarkerMesh.geometry.dispose();
+      this.leadMat.dispose();
+      this.bsmMarkerMesh.geometry.dispose();
+      this.bsmMat.dispose();
+    }
+  }
+}
