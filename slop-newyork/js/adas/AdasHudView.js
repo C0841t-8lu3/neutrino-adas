@@ -450,11 +450,11 @@ export class AdasHudView {
         this._setStyle(bsmLText, 'color', '#ffffff');
         this._setStyle(bsmLIcon, 'color', '#ffffff');
       } else {
-        bsmL.style.background = 'rgba(15,23,42,0.85)';
-        bsmL.style.borderColor = '#475569';
-        bsmL.style.boxShadow = 'none';
-        if (bsmLText) bsmLText.style.color = '#64748b';
-        if (bsmLIcon) bsmLIcon.style.color = '#64748b';
+        this._setStyle(bsmL, 'background', 'rgba(15,23,42,0.85)');
+        this._setStyle(bsmL, 'borderColor', '#475569');
+        this._setStyle(bsmL, 'boxShadow', 'none');
+        this._setStyle(bsmLText, 'color', '#64748b');
+        this._setStyle(bsmLIcon, 'color', '#64748b');
       }
     }
 
@@ -463,17 +463,17 @@ export class AdasHudView {
     const bsmRIcon = document.getElementById('bsm-right-icon');
     if (bsmR) {
       if (data.rightBsmAlert) {
-        bsmR.style.background = '#ef4444';
-        bsmR.style.borderColor = '#ffffff';
-        bsmR.style.boxShadow = '0 0 12px #ef4444';
-        if (bsmRText) bsmRText.style.color = '#ffffff';
-        if (bsmRIcon) bsmRIcon.style.color = '#ffffff';
+        this._setStyle(bsmR, 'background', '#ef4444');
+        this._setStyle(bsmR, 'borderColor', '#ffffff');
+        this._setStyle(bsmR, 'boxShadow', '0 0 12px #ef4444');
+        this._setStyle(bsmRText, 'color', '#ffffff');
+        this._setStyle(bsmRIcon, 'color', '#ffffff');
       } else {
-        bsmR.style.background = 'rgba(15,23,42,0.85)';
-        bsmR.style.borderColor = '#475569';
-        bsmR.style.boxShadow = 'none';
-        if (bsmRText) bsmRText.style.color = '#64748b';
-        if (bsmRIcon) bsmRIcon.style.color = '#64748b';
+        this._setStyle(bsmR, 'background', 'rgba(15,23,42,0.85)');
+        this._setStyle(bsmR, 'borderColor', '#475569');
+        this._setStyle(bsmR, 'boxShadow', 'none');
+        this._setStyle(bsmRText, 'color', '#64748b');
+        this._setStyle(bsmRIcon, 'color', '#64748b');
       }
     }
 
