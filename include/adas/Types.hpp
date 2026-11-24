@@ -144,9 +144,13 @@ struct AdasOutput {
     bool left_mirror_blind_spot = false;
     bool right_mirror_blind_spot = false;
     DriveMode drive_mode = DriveMode::CRUISING;
+    DriveProfile drive_profile = DriveProfile::STANDARD;
+    float lateral_nudge = 0.0f;
     float lead_distance = 999.0f;
     float lead_rel_speed = 0.0f;
     float time_to_collision = 999.0f;
+    uint64_t ack_seq = 0;
+    bool watchdog_ok = true;
     std::string status_message;
 };
 
