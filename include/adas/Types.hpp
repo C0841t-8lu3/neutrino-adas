@@ -41,6 +41,23 @@ struct VehicleState {
     float steer_angle = 0.0f;    // radians front wheel angle
     int current_lane = 1;        // 0: Left, 1: Center, 2: Right
     int target_lane = 1;
+    uint64_t seq = 0;            // Monotonic telemetry frame sequence counter
+
+    // Optional Point-to-Point Navigation Route Fields
+    bool has_route = false;
+    float ref_x = 0.0f;
+    float ref_z = 0.0f;
+    float ref_heading = 0.0f;
+    float path_curvature = 0.0f;
+    float next_curvature = 0.0f; // Lookahead curvature for predictive cornering
+    float dist_to_goal = 99999.0f;
+    int turn_signal_hint = 0;    // -1: Left, 0: None, +1: Right
+    float dist_to_next_turn = 999.0f; // Distance in meters to upcoming turn
+    int pre_turn_lane_hint = 0;       // -1: Left turn upcoming, +1: Right turn upcoming, 0: None
+    bool in_intersection = false;     // True if ego vehicle is inside an intersection box
+
+    // Optional FSD Driving Profile (defaults to STANDARD)
+    DriveProfile drive_profile = DriveProfile::STANDARD;
 };
 
 // Traffic Obstacle detected by sensors
