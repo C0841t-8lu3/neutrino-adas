@@ -1,12 +1,14 @@
 // js/adas/AdasHudView.js
 // ============================================================================
 // ADAS HUD & Dual Side-Mirror DOM View Component
-// Encapsulates all DOM nodes, CSS glassmorphism styling, and telemetry display
+// Encapsulates all DOM nodes, CSS glassmorphism styling, and telemetry display.
+// Features Watchdog Safe Stop banner, Tesla FSD Profiles (CHILL | STANDARD | HURRY),
+// Tesla FSD Status Strip, sensor noise toggle, and Flight Recorder export buttons.
 // ============================================================================
 
 export class AdasHudView {
   constructor(callbacks = {}) {
-    this.callbacks = callbacks; // { onToggle, onLaneChangeLeft, onLaneChangeRight }
+    this.callbacks = callbacks; // { onToggle, onLaneChangeLeft, onLaneChangeRight, onProfileChange, onToggleFsdVis, onToggleSensors, onToggleSurface, onExportJson, onExportCsv }
     this.hudElement = null;
     this.leftMirrorBox = null;
     this.rightMirrorBox = null;
