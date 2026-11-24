@@ -5,8 +5,34 @@
 // ============================================================================
 
 export class SideMirrorRenderer {
+  constructor() {
+    this._trafficScratch = [];
+    this.lastLeft = { px: -9999, pz: -9999, heading: -999, bsm: false };
+    this.lastRight = { px: -9999, pz: -9999, heading: -999, bsm: false };
+  }
+
   renderSideMirror(ctx, canvas, car, isLeft, bsmActive, trafficSystem = null) {
     if (!ctx || !canvas || !car) return;
+
+    const px = car.position.x;
+    const pz = car.position.z;
+    const heading = car.heading;
+
+    const last = isLeft ? this.lastLeft : this.lastRight;
+    const dx = px - last.px;
+    const dz = pz - last.pz;
+    const dh = Math.abs(heading - last.heading);
+    const speed = Math.abs(car.speed || 0);
+
+    // Skip redraw if vehicle is stopped and ego/bsm state has not changed beyond epsilon
+    if (speed < 0.05 && (dx * dx + dz * dz) < 0.0004 && dh < 0.001 && bsmActive === last.bsm) {
+      return;
+    }
+
+    last.px = px;
+    last.pz = pz;
+    last.heading = heading;
+    last.bsm = bsmActive;
 
     const w = canvas.width;
     const h = canvas.height;
