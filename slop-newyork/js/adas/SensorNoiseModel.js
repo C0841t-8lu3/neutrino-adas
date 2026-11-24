@@ -113,3 +113,41 @@ export class SensorNoiseModel {
       const azimuth = Math.atan2(lateralDist, forwardDist);
       if (Math.abs(azimuth) > this.maxRadarFovRad) continue; // Outside FOV
 
+      const halfW = (o.type === 1 ? 1.4 : o.type === 2 ? 0.4 : 1.0);
+      const angWidth = Math.atan2(halfW, Math.max(1.0, forwardDist));
+
+      candidates.push({
+        orig: o,
+        forwardDist,
+        lateralDist,
+        range,
+        azimuth,
+        angMin: azimuth - angWidth,
+        angMax: azimuth + angWidth,
+        occluded: false,
+        dropped: false
+      });
+    }
+
+    // 2. Line-of-Sight Occlusion Check (Closer objects shadow farther objects behind them)
+    candidates.sort((a, b) => a.range - b.range);
+    let occludedCount = 0;
+    const shadowFrustums = [];
+
+    for (let i = 0; i < candidates.length; i++) {
+      const c = candidates[i];
+      // Check if candidate is covered by any closer shadow frustum
+      for (let j = 0; j < shadowFrustums.length; j++) {
+        const s = shadowFrustums[j];
+        if (c.azimuth >= s.min && c.azimuth <= s.max) {
+          c.occluded = true;
+          occludedCount++;
+          break;
+        }
+      }
+
+      if (!c.occluded) {
+        // Broaden shadow for vehicles / trucks to occlude objects directly behind them
+        const shadowSpan = (c.orig.type === 1) ? 0.06 : 0.04;
+        shadowFrustums.push({
+          min: c.azimuth - shadowSpan,
