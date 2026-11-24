@@ -61,3 +61,34 @@ export class RoutePlanner {
     this._trackingRef.hasRoute = false;
     this._trackingRef.isArrived = false;
     this._trackingRef.turnSignalHint = 0;
+    this._trackingRef.preTurnLaneHint = 0;
+    this._trackingRef.inIntersection = false;
+    this._trackingRef.curvature = 0;
+    this._trackingRef.nextCurvature = 0;
+    this._trackingRef.distToGoal = 0;
+  }
+
+  /**
+   * Snaps a world coordinate (worldX, worldZ) to the nearest directed drivable road edge.
+   * If heading is provided, penalizes reverse-direction edges to respect traffic flow.
+   */
+  snapToNearestEdge(worldX, worldZ, heading = null) {
+    if (!this.roadNetwork || !this.roadNetwork.edges || this.roadNetwork.edges.length === 0) {
+      return null;
+    }
+
+    let bestEdge = null;
+    let bestDistSq = Infinity;
+    let bestS = 0;
+    let bestProjX = worldX;
+    let bestProjZ = worldZ;
+
+    const edges = this.roadNetwork.edges;
+    const count = edges.length;
+
+    for (let i = 0; i < count; i++) {
+      const e = edges[i];
+      const dx = worldX - e.sx;
+      const dz = worldZ - e.sz;
+
+      // Projection along edge direction
