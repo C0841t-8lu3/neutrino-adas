@@ -116,7 +116,7 @@ LongitudinalOutput LongitudinalController::step(
         float target_accel = 0.0f;
 
         if (lead_is_stationary && ego.speed > 0.5f) {
-            float remaining_stopping_dist = std::max(0.5f, scan.lead_distance - config_.min_safe_dist);
+            float remaining_stopping_dist = std::max(0.5f, scan.lead_distance - desired_gap);
             float req_decel = (ego.speed * ego.speed) / (2.0f * remaining_stopping_dist);
             target_accel = -std::min(config_.max_service_brake, std::max(0.8f, req_decel));
         } else {
@@ -132,7 +132,7 @@ LongitudinalOutput LongitudinalController::step(
             out.brake = std::min(1.0f, -target_accel / config_.max_service_brake);
         }
 
-        if (ego.speed < 0.6f && lead_is_stationary && scan.lead_distance <= 15.0f) {
+        if (ego.speed < 0.6f && lead_is_stationary && scan.lead_distance <= 3.0f) {
             current_mode_ = DriveMode::STOPPED;
             out.throttle = 0.0f;
             out.brake = 0.8f;
