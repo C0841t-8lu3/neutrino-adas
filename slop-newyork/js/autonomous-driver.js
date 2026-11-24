@@ -166,6 +166,11 @@ export class AutonomousDriver {
   applyQnxResponse(res) {
     if (!res) return;
 
+    this.lastPacketTime = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    this.lastQnxPacketTime = this.lastPacketTime;
+    this.watchdogFault = false;
+    this._watchdogTicks = 0;
+
     this.throttle = res.throttle || 0;
     this.brake = res.brake || 0;
     this.steerInput = res.steer_cmd || 0;
@@ -181,10 +186,20 @@ export class AutonomousDriver {
     if (res.status_message) {
       this.statusMessage = res.status_message;
     }
+    if (res.bridge_rtt_us !== undefined) {
+      this.rttUs = res.bridge_rtt_us;
+    }
+    if (res.drive_profile !== undefined) {
+      this.driveProfile = res.drive_profile;
+    }
+    if (res.lateral_nudge !== undefined) {
+      this.lateralNudge = res.lateral_nudge;
+    }
 
     // Drive mode string mapping
     const MODES = ['MANUAL', 'CRUISING', 'ACC_FOLLOWING', 'LANE_CHANGING', 'INTERSECTION_TURN', 'AEB_BRAKING', 'STOPPED'];
-    this.state = MODES[res.drive_mode] || 'CRUISING';
+    this.driveModeCode = res.drive_mode !== undefined ? res.drive_mode : 1;
+    this.state = MODES[this.driveModeCode] || 'CRUISING';
 
     // Acoustic horn trigger from QNX RTOS
     if (res.horn_active) {
