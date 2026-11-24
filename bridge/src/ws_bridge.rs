@@ -139,10 +139,25 @@ impl QnxWsBridge {
                         break;
                     }
                     Ok(_) => {
-                        let rtt_us = start.elapsed().as_micros();
+                        let rtt_us = start.elapsed().as_micros() as u64;
 
-                        // Send back to frontend WebSocket
-                        let _ = ws.send(Message::Text(qnx_response.trim().to_string()));
+                        // Rolling RTT tracking
+                        if rtt_samples.len() >= 1000 {
+                            rtt_samples.remove(0);
+                        }
+                        rtt_samples.push(rtt_us);
+
+                        // Inject bridge_rtt_us into JSON response before sending back to frontend
+                        let trimmed = qnx_response.trim();
+                        ws_payload.clear();
+                        if let Some(brace_idx) = trimmed.rfind('}') {
+                            ws_payload.push_str(&trimmed[..brace_idx]);
+                            ws_payload.push_str(&format!(",\"bridge_rtt_us\":{}}}", rtt_us));
+                        } else {
+                            ws_payload.push_str(trimmed);
+                        }
+
+                        let _ = ws.send(Message::Text(ws_payload.clone()));
 
                         frame_count += 1;
                         if last_log.elapsed() >= Duration::from_secs(2) {
