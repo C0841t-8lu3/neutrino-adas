@@ -16,9 +16,20 @@ enum class DriveMode : int {
     STOPPED = 6
 };
 
+// Tesla-Style FSD Driving Profiles
+enum class DriveProfile : int {
+    CHILL = 0,
+    STANDARD = 1,
+    HURRY = 2
+};
+
 // Mode to string conversion
 const char* modeToString(DriveMode mode);
 const char* modeToString(int mode);
+
+// Profile to string conversion
+const char* profileToString(DriveProfile profile);
+const char* profileToString(int profile);
 
 // Vehicle Kinematic State
 struct VehicleState {
