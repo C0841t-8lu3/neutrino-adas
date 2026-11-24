@@ -66,3 +66,37 @@ export class PerformanceGovernor {
     } else if (this.profile === 'HIGH') {
       this.minDpr = 0.85;
       this.maxDpr = 1.0;
+      this.currentDpr = 1.0;
+      this.cullScale = 1.0;
+      this.mirrorSkipInterval = 2;
+    } else {
+      // AUTO
+      this.minDpr = 0.75;
+      this.maxDpr = 1.0;
+      this.mirrorSkipInterval = 2;
+    }
+
+    if (this.renderer && typeof this.renderer.setPixelRatio === 'function') {
+      this.renderer.setPixelRatio(this.currentDpr);
+      this.lastAppliedDpr = this.currentDpr;
+    }
+    this.updatePill(true);
+  }
+
+  cycleProfile() {
+    if (this.profile === 'AUTO') this.setProfile('LOW');
+    else if (this.profile === 'LOW') this.setProfile('HIGH');
+    else this.setProfile('AUTO');
+  }
+
+  createTelemetryPill() {
+    const pill = document.createElement('div');
+    pill.id = 'perf-governor-pill';
+    pill.style.position = 'fixed';
+    pill.style.top = '14px';
+    pill.style.left = '50%';
+    pill.style.transform = 'translateX(-50%)';
+    pill.style.zIndex = '1000';
+    pill.style.display = 'flex';
+    pill.style.alignItems = 'center';
+    pill.style.gap = '8px';
