@@ -81,6 +81,8 @@ struct ForwardScanResult {
     float lead_lat = 0.0f;
     float time_to_collision = 999.0f;
     bool pedestrian_ahead = false;
+    bool is_lead_stop_line = false;
+    int lead_type = 0;
 };
 
 struct BlindSpotResult {
@@ -92,9 +94,9 @@ struct BlindSpotResult {
 struct AdasConfig {
     float target_speed_mps = 14.0f;      // 50 km/h (~31 mph)
     float min_safe_dist = 6.5f;          // meters
-    float time_headway = 1.4f;           // seconds
-    float max_accel = 2.5f;              // m/s^2
-    float max_service_brake = 3.5f;      // m/s^2
+    float time_headway = 1.3f;           // seconds (CHILL: 1.8s, STANDARD: 1.3s, HURRY: 1.0s)
+    float max_accel = 2.5f;              // m/s^2 (CHILL: 1.8, STANDARD: 2.5, HURRY: 3.2)
+    float max_service_brake = 3.5f;      // m/s^2 (CHILL: 2.8, STANDARD: 3.5, HURRY: 4.2)
     float emergency_brake_accel = 8.5f;  // m/s^2
     float stanley_k_psi = 1.20f;
     float stanley_k_e = 0.75f;
