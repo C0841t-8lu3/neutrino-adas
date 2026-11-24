@@ -389,18 +389,18 @@ export class AdasHudView {
 
     if (elRadar) {
       if (data.leadDist < 70) {
-        elRadar.textContent = `${data.leadDist.toFixed(1)} m (${data.closestObstacleName || 'Car'})`;
-        elRadar.style.color = data.leadDist < 12 ? '#ef4444' : '#fbbf24';
+        this._setDomText(elRadar, `${data.leadDist.toFixed(1)} m (${data.closestObstacleName || 'Car'})`);
+        this._setStyle(elRadar, 'color', data.leadDist < 12 ? '#ef4444' : '#fbbf24');
       } else {
-        elRadar.textContent = 'Clear (>70m)';
-        elRadar.style.color = '#10b981';
+        this._setDomText(elRadar, 'Clear (>70m)');
+        this._setStyle(elRadar, 'color', '#10b981');
       }
     }
 
     if (elBsmText) {
       const leftStr = data.leftBsmAlert ? '<span style="color:#ef4444;">ALERT</span>' : '<span style="color:#10b981;">CLEAR</span>';
       const rightStr = data.rightBsmAlert ? '<span style="color:#ef4444;">ALERT</span>' : '<span style="color:#10b981;">CLEAR</span>';
-      elBsmText.innerHTML = `L: ${leftStr} | R: ${rightStr}`;
+      this._setDomHtml(elBsmText, `L: ${leftStr} | R: ${rightStr}`);
     }
 
     if (elBanner) {
