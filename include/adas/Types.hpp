@@ -65,6 +65,8 @@ struct Obstacle {
     float x = 0.0f;
     float z = 0.0f;
     float speed = 0.0f;
+    float vx = 0.0f;
+    float vz = 0.0f;
     float heading = 0.0f;
     float width = 2.0f;
     float length = 4.5f;
