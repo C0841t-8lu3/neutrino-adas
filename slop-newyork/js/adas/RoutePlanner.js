@@ -218,3 +218,34 @@ export class RoutePlanner {
         const turnLen = (m.turn === 'S') ? 6.0 : (m.turn === 'L' || m.turn === 'R') ? 14.0 : 18.0;
         const tentativeG = currentG + current.len + turnLen;
 
+        const neighborG = gScore.get(neighbor.id) ?? Infinity;
+        if (tentativeG < neighborG) {
+          cameFrom.set(neighbor.id, { fromEdge: current, move: m });
+          gScore.set(neighbor.id, tentativeG);
+          fScore.set(neighbor.id, tentativeG + heuristic(neighbor));
+
+          if (!openSet.includes(neighbor)) {
+            openSet.push(neighbor);
+          }
+        }
+      }
+    }
+
+    if (!foundGoal && startEdge.id !== goalEdge.id) {
+      console.warn('[RoutePlanner] No road graph path found to destination.');
+      return null;
+    }
+
+    // Reconstruct edge sequence from goal to start
+    const edgePath = [];
+    let curr = goalEdge;
+    while (curr && curr.id !== startEdge.id) {
+      const prev = cameFrom.get(curr.id);
+      if (!prev) break;
+      edgePath.unshift({ edge: curr, move: prev.move });
+      curr = prev.fromEdge;
+    }
+    edgePath.unshift({ edge: startEdge, move: null });
+
+    // Build dense sampled waypoints
+    const waypoints = this._buildWaypointsFromEdgePath(edgePath, startSnap, goalSnap);
