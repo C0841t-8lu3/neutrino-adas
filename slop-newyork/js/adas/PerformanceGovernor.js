@@ -100,3 +100,37 @@ export class PerformanceGovernor {
     pill.style.display = 'flex';
     pill.style.alignItems = 'center';
     pill.style.gap = '8px';
+    pill.style.padding = '4px 12px';
+    pill.style.borderRadius = '20px';
+    pill.style.background = 'rgba(15, 23, 42, 0.82)';
+    pill.style.backdropFilter = 'blur(10px)';
+    pill.style.border = '1px solid rgba(255, 255, 255, 0.15)';
+    pill.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.45)';
+    pill.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+    pill.style.fontSize = '11px';
+    pill.style.fontWeight = '600';
+    pill.style.color = '#e2e8f0';
+    pill.style.cursor = 'pointer';
+    pill.style.userSelect = 'none';
+    pill.title = 'Click to cycle Quality Profile (AUTO / LOW / HIGH) / Press F3';
+
+    pill.addEventListener('click', (e) => {
+      // Click cycles quality profile
+      this.cycleProfile();
+    });
+
+    document.body.appendChild(pill);
+    this.pillElement = pill;
+    this.updatePill(true);
+  }
+
+  bindKeys() {
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'F3') {
+        e.preventDefault();
+        this.visible = !this.visible;
+        if (this.pillElement) {
+          this.pillElement.style.display = this.visible ? 'flex' : 'none';
+        }
+      }
+    });
