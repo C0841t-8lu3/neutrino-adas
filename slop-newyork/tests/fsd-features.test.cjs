@@ -187,3 +187,41 @@ test('FsdVisualizer optimizes draw range for LOW / i3 MODE (16 segments vs 32 se
 
   visualizerLow.update(mockCar, {}, null, null);
   assert.equal(visualizerLow.ribbonGeo.drawRange.count, 16 * 6, '16 segments in LOW / i3 MODE');
+
+  const mockGovHigh = { profile: 'HIGH' };
+  const visualizerHigh = new FsdVisualizer(null, { perfGovernor: mockGovHigh });
+  visualizerHigh.update(mockCar, {}, null, null);
+  assert.equal(visualizerHigh.ribbonGeo.drawRange.count, 32 * 6, '32 segments in HIGH / AUTO MODE');
+});
+
+test('FsdVisualizer highlights Stop-Line bar, Lead Vehicle, and BSM indicator', () => {
+  const threeMock = createThreeMock();
+  const { FsdVisualizer } = loadModule(fsdSource, {
+    globals: { Float32Array, Uint16Array, Math },
+    imports: { 'three/webgpu': threeMock }
+  });
+
+  const visualizer = new FsdVisualizer(null, {});
+  const mockCar = { position: { x: 3.6, y: 0, z: 100 }, heading: 0, speed: 10, steerAngle: 0 };
+
+  // Virtual Red Stop Line
+  visualizer.update(mockCar, { activeRedStopObstacle: { x: 3.6, z: 130 } }, null, { activeRedStopObstacle: { x: 3.6, z: 130 } });
+  assert.equal(visualizer.stopLineMesh.visible, true);
+  assert.equal(visualizer.stopLineMesh.position.z, 130);
+
+  // Lead vehicle marker (ACC Cyan vs AEB Red)
+  visualizer.update(mockCar, { leadDistance: 22.0 }, null, { leadDist: 22.0 });
+  assert.equal(visualizer.leadMarkerMesh.visible, true);
+  assert.equal(visualizer.leadMat.color.hex, 0x00f0ff);
+
+  visualizer.update(mockCar, { leadDistance: 8.0, driveMode: 5, aebActive: true }, null, { leadDist: 8.0 });
+  assert.equal(visualizer.leadMat.color.hex, 0xef4444);
+
+  // Blind Spot Marker
+  visualizer.update(mockCar, { leftMirrorBlindSpot: true }, null, null);
+  assert.equal(visualizer.bsmMarkerMesh.visible, true);
+});
+
+test('AutonomousDriver supports FSD profiles (CHILL, STANDARD, HURRY) and hotkey cycle', () => {
+  const driverSource = readFileSync(join(__dirname, '../js/autonomous-driver.js'), 'utf8');
+  const { AutonomousDriver } = loadModule(driverSource, {
