@@ -316,14 +316,35 @@ export class PerceptionScanner {
     let nearestRelSpeed = 0;
     let nearestName = null;
 
-    for (const v of traffic) {
+    const trafficLen = this._trafficList.length;
+    for (let i = 0; i < trafficLen; i++) {
+      const v = this._trafficList[i];
       const dx = v.x - px;
       const dz = v.z - pz;
       const fwd = dx * sin + dz * cos;
-      const lat = dx * cos - dz * sin;
+      let lat = dx * cos - dz * sin;
 
-      // Forward radar detection cone (75m ahead, within lane corridor ~2.3m)
-      if (fwd > 1.2 && fwd < 75.0 && Math.abs(lat) < 2.3) {
+      // Path-aware Frenet projection along active route curvature:
+      // Project candidate vehicles onto predicted curve: lat_rel = lat - 0.5 * curv * fwd^2
+      if (routePlanner && routePlanner.hasActiveRoute()) {
+        const curv = routePlanner._trackingRef.curvature || 0.0;
+        lat = lat - 0.5 * curv * fwd * fwd;
+      }
+
+      // Sidewalk Pedestrian Filter:
+      // Pedestrians on sidewalk (|lat| > 1.35m) not moving toward road corridor must NEVER trigger AEB/braking
+      if (v.isPedestrian) {
+        const vLat = (v.vx || 0) * cos - (v.vz || 0) * sin;
+        const movingTowardCenter = (lat > 0.0 && vLat < -0.15) || (lat < 0.0 && vLat > 0.15);
+        if (Math.abs(lat) > 1.35 && (!movingTowardCenter || Math.abs(lat) > 2.6)) {
+          continue; // Pedestrian safely on sidewalk, ignore
+        }
+      }
+
+      // Tight active lane collision half-width: +-1.45m (+ vehicle half-width)
+      // completely rejects parked curb cars, adjacent-lane cars, and oncoming traffic
+      const corridorHalfWidth = 1.45 + (v.half ? Math.min(v.half, 1.2) : 1.0);
+      if (fwd > 1.2 && fwd < 75.0 && Math.abs(lat) < corridorHalfWidth) {
         const dist = fwd - (v.half || 2.0) - 2.3;
         if (dist < nearestDist) {
           nearestDist = Math.max(0.1, dist);
