@@ -24,6 +24,7 @@ import { setupSceneCulling, updateSceneCulling } from './scene-culling.js';
 import { CityAudioSystem } from './audio-system.js';
 import { AutonomousDriver } from './autonomous-driver.js';
 import { DrivingMetricsRecorder } from './driving-metrics.js';
+import { PerformanceGovernor } from './adas/PerformanceGovernor.js';
 
 // Application setup, shader warm-up and frame loop.
 
@@ -184,6 +185,8 @@ async function initApp() {
   const touchControls = new TouchControls(controllerManager);
   const autonomousDriver = new AutonomousDriver(controllerManager, trafficSystem, scene);
   const drivingMetrics = new DrivingMetricsRecorder(controllerManager, trafficSystem);
+  const perfGovernor = new PerformanceGovernor(renderer);
+  autonomousDriver.perfGovernor = perfGovernor;
   const soundButton = document.getElementById('btn-sound');
   const audioSystem = new CityAudioSystem({ controllerManager, trafficSystem, highwayTraffic, streetDetails }, {
     onStateChange: updateSoundButton
