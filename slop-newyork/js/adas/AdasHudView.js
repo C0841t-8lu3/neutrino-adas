@@ -288,8 +288,15 @@ export class AdasHudView {
     if (this.rightMirrorBox) this.rightMirrorBox.style.display = disp;
   }
 
-  updateHud(data) {
+  updateHud(data, force = false) {
     if (!this.hudElement) return;
+
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    // Throttle DOM text/style updates to ~14 Hz (70ms) unless forced
+    if (!force && now - this.lastHudUpdate < 70) {
+      return;
+    }
+    this.lastHudUpdate = now;
 
     const elBtn = document.getElementById('btn-toggle-ap');
     const elDot = document.getElementById('qnx-dot');
@@ -300,6 +307,14 @@ export class AdasHudView {
     const elBanner = document.getElementById('ap-status-banner');
     const elTurnL = document.getElementById('hud-turn-l');
     const elTurnR = document.getElementById('hud-turn-r');
+    const elWatchdog = document.getElementById('qnx-watchdog-banner');
+    const elSensorsBtn = document.getElementById('btn-toggle-sensors');
+    const elSurfaceBtn = document.getElementById('btn-toggle-surface');
+
+    // Watchdog Safe Stop Alert Banner
+    if (elWatchdog) {
+      this._setStyle(elWatchdog, 'display', data.watchdogFault ? 'block' : 'none');
+    }
 
     // QNX Status Dot
     if (elDot) {
