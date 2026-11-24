@@ -563,3 +563,35 @@ export class RoutePlanner {
       if (Math.abs(dYaw) > 0.08) {
         turnSignalHint = (dYaw > 0) ? +1 : -1;
       }
+    }
+
+    // 7. Signed lateral error to target waypoint
+    const dx = ex - targetWp.x;
+    const dz = ez - targetWp.z;
+    const cosH = Math.cos(targetWp.heading);
+    const sinH = Math.sin(targetWp.heading);
+    const lateralError = (dx * cosH) - (dz * sinH);
+
+    let headingError = egoHeading - targetWp.heading;
+    while (headingError > Math.PI) headingError -= 2 * Math.PI;
+    while (headingError < -Math.PI) headingError += 2 * Math.PI;
+
+    // Real Driver's License Rule: Auto-cancel blinker immediately once vehicle exits intersection
+    // curve and aligns with the new street (|heading_error| < 0.14 rad / ~8 deg)
+    if (!inIntersection && Math.abs(headingError) < 0.14 && nextTurnDist > 45.0) {
+      turnSignalHint = 0;
+    }
+
+    // Populate reusable return reference
+    const tr = this._trackingRef;
+    tr.hasRoute = true;
+    tr.refX = targetWp.x;
+    tr.refZ = targetWp.z;
+    tr.refHeading = targetWp.heading;
+    tr.curvature = maxCurvature;
+    tr.nextCurvature = nextCurvature;
+    tr.distToGoal = distToGoal;
+    tr.totalDistance = totalDist;
+    tr.speedLimit = targetWp.speedLimit;
+    tr.turnHint = turnHint;
+    tr.turnSignalHint = turnSignalHint;
