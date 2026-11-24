@@ -31,8 +31,15 @@ export class AutonomousDriver {
     this.watchdogFault = false;
     this.seq = 0;
     this.rttMs = 0;
+    this.rttUs = 0;
+    this.lastObstacleCount = 0;
+    this.mirrorTick = 0;
+    this.driveModeCode = 1;
 
     // Navigation and Kinematics
+    this.driveProfile = 1; // 0: CHILL, 1: STANDARD, 2: HURRY
+    this.lateralNudge = 0.0;
+    this.isYielding = false;
     this.targetSpeedMph = 32;
     this.targetSpeed = this.targetSpeedMph * 0.44704;
     this.minSafeGap = 6.0;
@@ -63,6 +70,18 @@ export class AutonomousDriver {
     this.audioEngine = new HornAudioEngine();
     this.perceptionScanner = new PerceptionScanner(trafficSystem);
     this.mirrorRenderer = new SideMirrorRenderer();
+    this.routePlanner = new RoutePlanner(trafficSystem?.network);
+    this.actuatorDynamics = new ActuatorDynamics();
+    this.telemetryRecorder = new TelemetryRecorder(3600);
+    this.scenarioInjector = new ScenarioInjector({
+      controllerManager: this.controllerManager,
+      trafficSystem: this.trafficSystem,
+      autonomousDriver: this,
+      routePlanner: this.routePlanner
+    });
+
+    this.fsdVisualizer = (this.scene) ? new FsdVisualizer(this.scene, { perfGovernor: this.perfGovernor }) : null;
+
     this.hudView = new AdasHudView({
       onToggle: () => this.toggle(),
       onLaneChangeLeft: () => this.requestLaneChange(-1),
