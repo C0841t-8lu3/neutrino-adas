@@ -134,3 +134,37 @@ export class PerformanceGovernor {
         }
       }
     });
+  }
+
+  update(rawDtMs, telemetry = {}) {
+    const frameMs = Math.max(1.0, Math.min(100.0, rawDtMs));
+    this.emaFrameMs = (1.0 - this.alpha) * this.emaFrameMs + this.alpha * frameMs;
+    this.fps = Math.round(1000.0 / Math.max(1.0, this.emaFrameMs));
+
+    if (telemetry.drawCalls !== undefined) this.drawCalls = telemetry.drawCalls;
+    if (telemetry.triangles !== undefined) this.triangles = telemetry.triangles;
+    if (telemetry.qnxRttUs !== undefined) this.qnxRttUs = telemetry.qnxRttUs;
+    if (telemetry.activeObstacles !== undefined) this.activeObstacles = telemetry.activeObstacles;
+
+    // Quality Profile Logic
+    if (this.profile === 'LOW') {
+      this.currentDpr = 0.75;
+      this.cullScale = 0.62;
+      this.mirrorSkipInterval = 4;
+    } else if (this.profile === 'HIGH') {
+      this.currentDpr = 1.0;
+      this.cullScale = 1.0;
+      this.mirrorSkipInterval = 2;
+    } else {
+      // Dynamic Frame-Budget Governor Adaptation (AUTO mode)
+      if (this.emaFrameMs > 16.66) {
+        // Over budget: smooth step down DPR and cull distance
+        this.currentDpr = Math.max(this.minDpr, this.currentDpr - 0.004);
+        this.cullScale = Math.max(0.70, this.cullScale - 0.005);
+        this.mirrorSkipInterval = 3;
+      } else if (this.emaFrameMs < 14.5) {
+        // Healthy headroom (>68 FPS potential): restore DPR and cull distance
+        this.currentDpr = Math.min(this.maxDpr, this.currentDpr + 0.002);
+        this.cullScale = Math.min(1.0, this.cullScale + 0.003);
+        this.mirrorSkipInterval = 2;
+      }
