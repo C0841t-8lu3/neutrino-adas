@@ -250,11 +250,35 @@ export class AdasHudView {
     const btnToggle = document.getElementById('btn-toggle-ap');
     if (btnToggle) btnToggle.addEventListener('click', () => this.callbacks.onToggle && this.callbacks.onToggle());
 
+    const btnChill = document.getElementById('btn-profile-chill');
+    if (btnChill) btnChill.addEventListener('click', () => this.callbacks.onProfileChange && this.callbacks.onProfileChange(0));
+
+    const btnStd = document.getElementById('btn-profile-standard');
+    if (btnStd) btnStd.addEventListener('click', () => this.callbacks.onProfileChange && this.callbacks.onProfileChange(1));
+
+    const btnHurry = document.getElementById('btn-profile-hurry');
+    if (btnHurry) btnHurry.addEventListener('click', () => this.callbacks.onProfileChange && this.callbacks.onProfileChange(2));
+
+    const btnVis = document.getElementById('btn-toggle-fsd-vis');
+    if (btnVis) btnVis.addEventListener('click', () => this.callbacks.onToggleFsdVis && this.callbacks.onToggleFsdVis());
+
     const btnLaneL = document.getElementById('btn-lane-left');
     if (btnLaneL) btnLaneL.addEventListener('click', () => this.callbacks.onLaneChangeLeft && this.callbacks.onLaneChangeLeft());
 
     const btnLaneR = document.getElementById('btn-lane-right');
     if (btnLaneR) btnLaneR.addEventListener('click', () => this.callbacks.onLaneChangeRight && this.callbacks.onLaneChangeRight());
+
+    const btnSensors = document.getElementById('btn-toggle-sensors');
+    if (btnSensors) btnSensors.addEventListener('click', () => this.callbacks.onToggleSensors && this.callbacks.onToggleSensors());
+
+    const btnSurface = document.getElementById('btn-toggle-surface');
+    if (btnSurface) btnSurface.addEventListener('click', () => this.callbacks.onToggleSurface && this.callbacks.onToggleSurface());
+
+    const btnExportJson = document.getElementById('btn-export-json');
+    if (btnExportJson) btnExportJson.addEventListener('click', () => this.callbacks.onExportJson && this.callbacks.onExportJson());
+
+    const btnExportCsv = document.getElementById('btn-export-csv');
+    if (btnExportCsv) btnExportCsv.addEventListener('click', () => this.callbacks.onExportCsv && this.callbacks.onExportCsv());
   }
 
   setVisibility(visible) {
