@@ -500,3 +500,35 @@ export class RoutePlanner {
     const inIntersection = !!(closestWp.isIntersection);
 
     if (distToGoal <= 4.0) {
+      turnHint = 'ARRIVED';
+      this._trackingRef.isArrived = true;
+    } else if (distToGoal <= 25.0) {
+      turnHint = 'ARRIVING';
+    } else {
+      // Look ahead up to 95m for upcoming turn
+      const turnScanDist = closestWp.distFromStart + 95.0;
+      let scanIdx = closestIdx;
+      while (scanIdx < len - 1 && route[scanIdx].distFromStart < turnScanDist) {
+        const p = route[scanIdx];
+        if (p.isIntersection || p.curvature > 0.04) {
+          nextTurnDist = Math.max(0, Math.round(p.distFromStart - closestWp.distFromStart));
+          nextStreet = p.streetName || 'Next Street';
+
+          // Measure turn direction across the upcoming intersection curve / apex
+          let maxDYaw = 0;
+          let curveIdx = scanIdx;
+          while (curveIdx < len - 1 && (route[curveIdx].isIntersection || (route[curveIdx].distFromStart - p.distFromStart < 25.0))) {
+            let dy = route[curveIdx].heading - egoHeading;
+            while (dy > Math.PI) dy -= 2 * Math.PI;
+            while (dy < -Math.PI) dy += 2 * Math.PI;
+            if (Math.abs(dy) > Math.abs(maxDYaw)) {
+              maxDYaw = dy;
+            }
+            if (!route[curveIdx].isIntersection) break;
+            curveIdx++;
+          }
+
+          let rawTurnDir = 0;
+          if (maxDYaw > 0.28) {
+            turnHint = 'RIGHT';
+            rawTurnDir = +1;
