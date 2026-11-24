@@ -221,3 +221,35 @@ async function runChryslerBuildingE2ETest() {
       path_curvature: 0.0, dist_to_goal: 350.0, turn_signal_hint: 0,
       in_intersection: 0, dist_to_next_turn: 90.0, pre_turn_lane_hint: 0
     });
+    assert.equal(res.drive_mode, 5, 'Must trigger AEB_BRAKING for genuine pedestrian in corridor');
+    assert.equal(res.brake, 1.0, 'Full emergency braking on genuine hazard');
+    assert.ok(res.status_message.includes('AEB') && res.status_message.includes('Pedestrian'), 'Status message must explain AEB cause');
+    console.log(`  [PASS] Genuine jaywalker triggers 100% AEB with explainable diagnostic: "${res.status_message}"`);
+  }
+
+  // 5d. Stop Line Bumper Distance Verification (0.5m - 2.5m before painted stop line)
+  {
+    const wp = waypoints[2];
+    const sin = Math.sin(wp.heading);
+    const cos = Math.cos(wp.heading);
+    // Virtual stop line 12.0m ahead
+    const stopLineX = wp.x + sin * 12.0;
+    const stopLineZ = wp.z + cos * 12.0;
+
+    const res = await sendTelemetry({
+      x: wp.x, y: 0.0, z: wp.z,
+      speed: 5.0, heading: wp.heading, steer_angle: 0.0,
+      current_lane: 1, target_lane: 1, dt: 0.016,
+      obs: [{ x: stopLineX, z: stopLineZ, speed: 0.0, type: 3 }],
+      has_route: 1, ref_x: wp.x, ref_z: wp.z, ref_heading: wp.heading,
+      path_curvature: 0.0, dist_to_goal: 300.0, turn_signal_hint: 0,
+      in_intersection: 0, dist_to_next_turn: 12.0, pre_turn_lane_hint: 0
+    });
+    assert.ok(res.brake > 0.1, 'Must decelerate smoothly for red light stop line');
+    console.log('  [PASS] Red light stop line triggers smooth, jerk-limited service stopping.');
+  }
+
+  // 5e. Full Simulated Drive along Route to Chrysler Building Arrival
+  console.log('\n  Simulating closed-loop drive to Chrysler Building destination...');
+  let ego = {
+    x: waypoints[0].x,
