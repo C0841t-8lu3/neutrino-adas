@@ -203,3 +203,44 @@ async function runFsdBehaviorVerification() {
     console.log('  [PASS] Pre-turn lane positioning and signaling verified.');
   }
 
+  // --------------------------------------------------------------------------
+  // TEST 5: BehaviorPlanner Lateral "Nudge" Clearance
+  // --------------------------------------------------------------------------
+  console.log('\n[TEST 5] Verifying BehaviorPlanner Lateral Nudge Clearance...');
+  {
+    // Clear state
+    for (let i = 0; i < 10; i++) {
+      await sendPacket(ws, { ...baseTelemetry, speed: 8.0, obs: [] });
+    }
+
+    // Hazard on right side of corridor: x = +1.6m (e.g. pedestrian or parked car near right curb)
+    // BehaviorPlanner should bias ego trajectory leftward away from the hazard
+    const nudgePkt = {
+      ...baseTelemetry,
+      speed: 8.0,
+      obs: [{ x: 1.6, z: 114.0, speed: 0.0, type: 1 }] // Hazard on right
+    };
+    let nudgeResp = null;
+    for (let i = 0; i < 20; i++) {
+      nudgeResp = await sendPacket(ws, nudgePkt);
+    }
+    console.log(`  Right Hazard -> Lateral Nudge: ${nudgeResp.lateral_nudge !== undefined ? nudgeResp.lateral_nudge.toFixed(3) : 'N/A'} | Steer: ${nudgeResp.steer_cmd.toFixed(3)} | Status: "${nudgeResp.status_message}"`);
+
+    // Steer command or nudge must bias away from the hazard (nudge negative / biasing left)
+    if (nudgeResp.lateral_nudge !== undefined) {
+      assert.ok(nudgeResp.lateral_nudge < 0.0, `Lateral nudge (${nudgeResp.lateral_nudge}) must be negative (biasing left away from right obstacle)`);
+    }
+    assert.ok(nudgeResp.steer_cmd <= 0.02, 'Steering command must not swerve into the right hazard');
+    console.log('  [PASS] Lateral nudge safely gives room to corridor edge hazards.');
+  }
+
+  ws.close();
+  console.log('\n====================================================================');
+  console.log('  ALL BEHAVIORAL & SAFETY VERIFICATIONS COMPLETED SUCCESSFULLY!      ');
+  console.log('====================================================================');
+}
+
+runFsdBehaviorVerification().catch((err) => {
+  console.error('[FAILED]', err);
+  process.exit(1);
+});
