@@ -4,11 +4,14 @@ namespace adas {
 
 QnxAdasController::QnxAdasController(const AdasConfig& config)
     : config_(config),
+      current_profile_(config.profile),
       forward_scanner_(std::make_unique<ForwardRadar>()),
       blind_spot_scanner_(std::make_unique<BlindSpotMonitor>()),
       longitudinal_ctrl_(config),
       lateral_ctrl_(config),
-      signal_mgr_() {}
+      signal_mgr_(),
+      behavior_planner_(config),
+      jerk_limiter_(config) {}
 
 void QnxAdasController::reset() {
     longitudinal_ctrl_.reset();
