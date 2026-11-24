@@ -101,3 +101,29 @@ BehaviorDecision BehaviorPlanner::plan(
                     lane_change_prep_timer_ = 1.5f;
                     decision.behavior_status = "QNX FSD: Pre-Turn Positioning -> Rightmost Turn Lane";
                 }
+            }
+        }
+    }
+
+    // 2. Proactive Overtake & Stopped-Blocker Escape
+    // If blocked by a slow or stopped vehicle (not a red-light stop line) for > 2.5s,
+    // check adjacent lane clearance + BSM and smoothly pass around it.
+    if (!is_preturn_active && !near_or_in_intersection) {
+        bool is_blocked = false;
+        if (fwd.lead_distance < 28.0f && !fwd.is_lead_stop_line) {
+            float lead_speed = ego.speed + fwd.lead_rel_speed;
+            if (config_.profile == DriveProfile::CHILL) {
+                // CHILL: Only for stopped blockers (< 1.0 m/s)
+                if (lead_speed < 1.0f) is_blocked = true;
+            } else if (config_.profile == DriveProfile::STANDARD) {
+                // STANDARD: Proactive passing of slow vehicles (< 70% target speed)
+                if (lead_speed < (0.70f * config_.target_speed_mps)) is_blocked = true;
+            } else {
+                // HURRY: Higher assertiveness for faster lanes (< 85% target speed)
+                if (lead_speed < (0.85f * config_.target_speed_mps)) is_blocked = true;
+            }
+        }
+
+        if (is_blocked) {
+            blocked_timer_ += dt;
+        } else {
