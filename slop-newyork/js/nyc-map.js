@@ -546,7 +546,216 @@ class NYCMapSystem {
       });
     }
 
+    this.createRouteUi();
     this.initEvents();
+  }
+
+  setRoutePlanner(planner) {
+    this.routePlanner = planner;
+  }
+
+  createRouteUi() {
+    if (typeof document === 'undefined' || typeof document.createElement !== 'function' || !document.body) return;
+
+    // 1. Destination Action Popover on Full Map
+    const popover = document.createElement('div');
+    popover.id = 'map-dest-popover';
+    popover.style.position = 'fixed';
+    popover.style.zIndex = '1005';
+    popover.style.background = 'rgba(15, 23, 42, 0.94)';
+    popover.style.backdropFilter = 'blur(14px)';
+    popover.style.border = '1px solid rgba(255, 255, 255, 0.22)';
+    popover.style.borderRadius = '14px';
+    popover.style.padding = '12px 16px';
+    popover.style.boxShadow = '0 16px 36px rgba(0, 0, 0, 0.75)';
+    popover.style.color = '#f8fafc';
+    popover.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+    popover.style.display = 'none';
+    popover.style.flexDirection = 'column';
+    popover.style.gap = '10px';
+    popover.style.minWidth = '240px';
+
+    popover.innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div style="font-weight:700; font-size:12px; color:#f8fafc; line-height:1.3;">
+          📍 <span id="map-popover-title">Selected Location</span>
+        </div>
+        <button id="btn-popover-close" style="cursor:pointer; background:none; border:none; color:#94a3b8; font-size:14px; font-weight:700; padding:2px 6px;">✕</button>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="btn-popover-drive" style="cursor:pointer; flex:1; background:#06b6d4; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-size:11px; font-weight:700; transition:all 0.15s;">
+          🚀 Drive Here (Auto)
+        </button>
+        <button id="btn-popover-teleport" style="cursor:pointer; background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:6px; padding:6px 10px; font-size:11px; font-weight:600;">
+          ⚡ Teleport
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(popover);
+    this.elDestPopover = popover;
+
+    const btnDrive = document.getElementById('btn-popover-drive');
+    const btnTeleport = document.getElementById('btn-popover-teleport');
+    const btnClose = document.getElementById('btn-popover-close');
+
+    if (btnDrive) {
+      btnDrive.addEventListener('click', () => {
+        if (this.pendingDest) {
+          this.commandDriveTo(this.pendingDest.x, this.pendingDest.z);
+        }
+        this.hideDestPopover();
+      });
+    }
+
+    if (btnTeleport) {
+      btnTeleport.addEventListener('click', () => {
+        if (this.pendingDest) {
+          const { x, z } = this.pendingDest;
+          this.waypoint = { x, z, name: getLocationLabel(x, z) };
+          if (this.onTeleport) this.onTeleport(x, z);
+        }
+        this.hideDestPopover();
+        this.renderFullMap();
+      });
+    }
+
+    if (btnClose) {
+      btnClose.addEventListener('click', () => this.hideDestPopover());
+    }
+
+    // 2. Compact Route Command Bar (Persistent HUD & Map Command Strip)
+    const routeBar = document.createElement('div');
+    routeBar.id = 'route-command-bar';
+    routeBar.style.position = 'fixed';
+    routeBar.style.top = '62px';
+    routeBar.style.left = '50%';
+    routeBar.style.transform = 'translateX(-50%)';
+    routeBar.style.zIndex = '998';
+    routeBar.style.background = 'rgba(15, 23, 42, 0.92)';
+    routeBar.style.backdropFilter = 'blur(14px)';
+    routeBar.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+    routeBar.style.borderRadius = '14px';
+    routeBar.style.padding = '8px 16px';
+    routeBar.style.boxShadow = '0 12px 30px rgba(0, 0, 0, 0.6)';
+    routeBar.style.color = '#f8fafc';
+    routeBar.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+    routeBar.style.fontSize = '12px';
+    routeBar.style.display = 'none';
+    routeBar.style.alignItems = 'center';
+    routeBar.style.gap = '14px';
+
+    routeBar.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:2px;">
+        <div style="display:flex; align-items:center; gap:6px; font-weight:700; font-size:11.5px;">
+          <span id="rcb-origin" style="color:#94a3b8; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Origin</span>
+          <span style="color:#38bdf8;">➔</span>
+          <span id="rcb-dest" style="color:#38bdf8; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Destination</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-family:monospace; color:#cbd5e1;">
+          <span id="rcb-dist" style="color:#a78bfa; font-weight:700;">--</span>
+          <span>·</span>
+          <span id="rcb-eta" style="color:#38bdf8;">ETA --</span>
+          <span>·</span>
+          <span id="rcb-turn" style="color:#f59e0b; font-weight:700;">Straight</span>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button id="rcb-btn-start" style="cursor:pointer; background:#10b981; color:#fff; border:none; border-radius:6px; padding:5px 10px; font-size:11px; font-weight:700; transition:all 0.15s;">
+          Start Auto Drive
+        </button>
+        <button id="rcb-btn-cancel" style="cursor:pointer; background:#334155; color:#cbd5e1; border:none; border-radius:6px; padding:5px 8px; font-size:11px; font-weight:600;">
+          Cancel
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(routeBar);
+    this.elRouteBar = routeBar;
+
+    const btnStart = document.getElementById('rcb-btn-start');
+    const btnCancel = document.getElementById('rcb-btn-cancel');
+
+    if (btnStart) {
+      btnStart.addEventListener('click', () => {
+        if (this.onDriveTo && this.waypoint) {
+          this.onDriveTo(this.waypoint.x, this.waypoint.z);
+        }
+      });
+    }
+
+    if (btnCancel) {
+      btnCancel.addEventListener('click', () => this.cancelCurrentRoute());
+    }
+  }
+
+  showDestPopover(clientX, clientY, wPos) {
+    this.pendingDest = wPos;
+    if (!this.elDestPopover) return;
+
+    const label = getLocationLabel(wPos.x, wPos.z);
+    const titleEl = document.getElementById('map-popover-title');
+    if (titleEl) titleEl.textContent = label;
+
+    const popW = 260;
+    const popH = 95;
+    let left = clientX + 12;
+    let top = clientY - 45;
+
+    if (left + popW > window.innerWidth - 15) {
+      left = clientX - popW - 12;
+    }
+    if (top + popH > window.innerHeight - 15) {
+      top = window.innerHeight - popH - 15;
+    }
+    if (top < 15) top = 15;
+
+    this.elDestPopover.style.left = `${left}px`;
+    this.elDestPopover.style.top = `${top}px`;
+    this.elDestPopover.style.display = 'flex';
+  }
+
+  hideDestPopover() {
+    if (this.elDestPopover) {
+      this.elDestPopover.style.display = 'none';
+    }
+    this.pendingDest = null;
+  }
+
+  commandDriveTo(destX, destZ) {
+    const ent = this.controllerManager.getActiveEntity();
+    if (!ent) return;
+
+    if (this.routePlanner) {
+      this.routePlanner.planRoute(ent.position, ent.heading, { x: destX, z: destZ });
+    }
+
+    this.waypoint = {
+      x: destX,
+      z: destZ,
+      name: getLocationLabel(destX, destZ)
+    };
+
+    if (this.elRouteBar) {
+      this.elRouteBar.style.display = 'flex';
+    }
+
+    if (this.onDriveTo) {
+      this.onDriveTo(destX, destZ);
+    }
+
+    this.renderFullMap();
+  }
+
+  cancelCurrentRoute() {
+    if (this.routePlanner) {
+      this.routePlanner.clearRoute();
+    }
+    this.waypoint = null;
+    if (this.elRouteBar) {
+      this.elRouteBar.style.display = 'none';
+    }
+    this.renderFullMap();
   }
 
   initEvents() {
