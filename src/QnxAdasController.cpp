@@ -63,11 +63,11 @@ AdasOutput QnxAdasController::step(const VehicleState& ego, const std::vector<Ob
     out.lead_rel_speed = fwd.lead_rel_speed;
     out.time_to_collision = fwd.time_to_collision;
 
-    // 3. Lateral control & Lane-change decision state machine
-    LateralOutput lat = lateral_ctrl_.step(ego, fwd, bsm, dt);
+    // 3. Human-Like Behavior Planner
+    BehaviorDecision plan = behavior_planner_.plan(ego, fwd, bsm, obstacles, dt);
 
-    // 4. Longitudinal control (AEB, ACC, Cruising, Stop-Line Deceleration)
-    LongitudinalOutput lon = longitudinal_ctrl_.step(ego, fwd, dt);
+    // 4. Lateral control with in-lane lateral nudge and pre-turn positioning
+    LateralOutput lat = lateral_ctrl_.step(ego, fwd, bsm, dt, plan.target_lane, plan.lateral_nudge);
 
     // 5. Arbitrate hazard and horn actuators
     bool hazard = lat.hazard || lon.hazard;
