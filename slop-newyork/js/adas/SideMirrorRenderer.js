@@ -86,8 +86,10 @@ export class SideMirrorRenderer {
       }
     }
     if (trafficSystem?.buses) {
-      for (const b of trafficSystem.buses) {
-        if (Number.isFinite(b.x) && Number.isFinite(b.z)) traffic.push({ ...b, isBus: true });
+      const buses = trafficSystem.buses;
+      for (let i = 0; i < buses.length; i++) {
+        const b = buses[i];
+        if (Number.isFinite(b.x) && Number.isFinite(b.z)) this._trafficScratch.push(b);
       }
     }
 
@@ -96,7 +98,8 @@ export class SideMirrorRenderer {
     const mirrorSin = Math.sin(car.heading + Math.PI + mirrorAngleOffset);
     const mirrorCos = Math.cos(car.heading + Math.PI + mirrorAngleOffset);
 
-    for (const v of traffic) {
+    for (let i = 0; i < this._trafficScratch.length; i++) {
+      const v = this._trafficScratch[i];
       const dx = v.x - px;
       const dz = v.z - pz;
 
