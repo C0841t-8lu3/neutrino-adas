@@ -156,7 +156,7 @@ LongitudinalOutput LongitudinalController::step(
     // Free Cruising
     else {
         current_mode_ = DriveMode::CRUISING;
-        float speed_error = config_.target_speed_mps - ego.speed;
+        float speed_error = effective_target_speed - ego.speed;
         if (speed_error >= 0.0f) {
             out.throttle = std::min(1.0f, speed_error * 0.45f);
             out.brake = 0.0f;
@@ -165,7 +165,15 @@ LongitudinalOutput LongitudinalController::step(
             out.brake = std::min(0.6f, -speed_error * 0.30f);
         }
 
-        out.status_message = "QNX Cruising 50 km/h | Lane Centering Active | Watchdog OK";
+        if (ego.has_route) {
+            char status_buf[128];
+            std::snprintf(status_buf, sizeof(status_buf),
+                          "QNX NAV: Route Active | Goal: %.0fm | Speed: %.1f km/h",
+                          ego.dist_to_goal, ego.speed * 3.6f);
+            out.status_message = status_buf;
+        } else {
+            out.status_message = "QNX Cruising 50 km/h | Lane Centering Active | Watchdog OK";
+        }
     }
 
     if (ego.speed < 0.15f && out.brake > 0.0f && current_mode_ == DriveMode::AEB_EMERGENCY) {
