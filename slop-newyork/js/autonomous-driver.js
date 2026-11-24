@@ -423,24 +423,24 @@ export class AutonomousDriver {
     if (this.enabled) {
       if (effBrake > 0.05 && car.speed > 0.2) {
         this.controllerManager.keys.forward = false;
-        this.controllerManager.keys.backward = Math.min(1.0, this.brake);
-      } else if (car.speed <= 0.2 && (this.brake > 0.05 || this.state === 'STOPPED')) {
+        this.controllerManager.keys.backward = Math.min(1.0, effBrake);
+      } else if (car.speed <= 0.2 && (effBrake > 0.05 || this.state === 'STOPPED')) {
         this.controllerManager.keys.forward = false;
         this.controllerManager.keys.backward = false;
         car.speed = 0;
         car.vx = 0;
         car.vz = 0;
       } else {
-        this.controllerManager.keys.forward = this.throttle > 0 ? this.throttle : false;
-        this.controllerManager.keys.backward = this.throttle < 0 ? -this.throttle : false;
+        this.controllerManager.keys.forward = effThrottle > 0 ? effThrottle : false;
+        this.controllerManager.keys.backward = effThrottle < 0 ? -effThrottle : false;
       }
-      this.controllerManager.keys.left = this.steerInput > 0 ? this.steerInput : false;
-      this.controllerManager.keys.right = this.steerInput < 0 ? -this.steerInput : false;
+      this.controllerManager.keys.left = effSteer > 0 ? effSteer : false;
+      this.controllerManager.keys.right = effSteer < 0 ? -effSteer : false;
     }
 
     // 5. Update 3D Turn Signals and Brake Lights on Car Fascias
     if (car.carState) {
-      car.carState.value.x = (this.brake > 0.1 || (car.speed * this.throttle < 0)) ? 1 : 0;
+      car.carState.value.x = (effBrake > 0.1 || (car.speed * effThrottle < 0)) ? 1 : 0;
       car.carState.value.y = (this.leftBlinker || this.hazardLights) ? 1 : 0;
       car.carState.value.z = (this.rightBlinker || this.hazardLights) ? 1 : 0;
     }
