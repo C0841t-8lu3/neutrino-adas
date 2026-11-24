@@ -124,3 +124,34 @@ export class RoutePlanner {
       if (totalScore < bestDistSq) {
         bestDistSq = totalScore;
         bestEdge = e;
+        bestS = s;
+        bestProjX = projX;
+        bestProjZ = projZ;
+      }
+    }
+
+    if (!bestEdge) return null;
+
+    const edgeHeading = Math.atan2(bestEdge.dx, bestEdge.dz);
+    return {
+      edge: bestEdge,
+      s: bestS,
+      projX: bestProjX,
+      projZ: bestProjZ,
+      heading: edgeHeading,
+      dist: Math.sqrt(Math.max(0, bestDistSq))
+    };
+  }
+
+  /**
+   * Plans an optimal road-graph route from startPos to goalPos using A* search.
+   * Returns an array of densely sampled, smoothed waypoints.
+   */
+  planRoute(startPos, startHeading, goalPos) {
+    if (!this.roadNetwork) {
+      console.warn('[RoutePlanner] No road network available.');
+      return null;
+    }
+
+    const startSnap = this.snapToNearestEdge(startPos.x, startPos.z, startHeading);
+    const goalSnap = this.snapToNearestEdge(goalPos.x, goalPos.z, null);
