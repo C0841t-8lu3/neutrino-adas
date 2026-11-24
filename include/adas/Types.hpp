@@ -98,6 +98,8 @@ struct AdasConfig {
     float max_accel = 2.5f;              // m/s^2 (CHILL: 1.8, STANDARD: 2.5, HURRY: 3.2)
     float max_service_brake = 3.5f;      // m/s^2 (CHILL: 2.8, STANDARD: 3.5, HURRY: 4.2)
     float emergency_brake_accel = 8.5f;  // m/s^2
+    float max_jerk = 2.8f;               // m/s^3 (CHILL: 2.2, STANDARD: 2.8, HURRY: 3.5)
+    float max_steer_rate = 1.6f;         // rad/s steering rate limit
     float stanley_k_psi = 1.20f;
     float stanley_k_e = 0.75f;
     float stanley_steer_clamp = 0.65f;
