@@ -1,10 +1,11 @@
 // js/adas/PerceptionScanner.js
 // ============================================================================
 // ADAS Forward LiDAR / Radar Perception & Virtual Intersection Barrier Scanner
-// Scans dynamic traffic and projects upcoming red/amber traffic signal stop-lines
+// Zero-GC Hot Loop: Pre-allocated object pools and reusable scratch structures
 // ============================================================================
 
 import { signalPhase } from '../city-config.js';
+import { SensorNoiseModel } from './SensorNoiseModel.js';
 
 export class PerceptionScanner {
   constructor(trafficSystem = null) {
