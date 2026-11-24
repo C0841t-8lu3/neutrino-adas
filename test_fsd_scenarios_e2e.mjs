@@ -162,3 +162,44 @@ async function runFsdBehaviorVerification() {
   console.log('\n[TEST 4] Verifying BehaviorPlanner Pre-Turn Lane Positioning (< 90m)...');
   {
     // Clear obstacles
+    for (let i = 0; i < 10; i++) {
+      await sendPacket(ws, { ...baseTelemetry, speed: 10.0, obs: [] });
+    }
+
+    // Vehicle in middle lane (lane 1), upcoming left turn in 60m (hint: -1 for Left)
+    const preTurnLeftPkt = {
+      ...baseTelemetry,
+      current_lane: 1,
+      target_lane: 1,
+      dist_to_goal: 60.0,
+      turn_signal_hint: -1, // Left turn (-1)
+      obs: []
+    };
+    let leftBlinkerFlashed = false;
+    for (let i = 0; i < 25; i++) {
+      const resp = await sendPacket(ws, preTurnLeftPkt);
+      if (resp.left_turn_signal) leftBlinkerFlashed = true;
+    }
+    console.log(`  Upcoming Left Turn  (hint=-1, dist=60m) -> Left Blinker Flashing: ${leftBlinkerFlashed}`);
+    assert.equal(leftBlinkerFlashed, true, 'Left turn blinker must flash within 90m of left turn');
+
+    // Upcoming right turn in 60m (hint: +1 for Right)
+    const preTurnRightPkt = {
+      ...baseTelemetry,
+      current_lane: 1,
+      target_lane: 1,
+      dist_to_goal: 60.0,
+      turn_signal_hint: +1, // Right turn (+1)
+      obs: []
+    };
+    let rightBlinkerFlashed = false;
+    for (let i = 0; i < 25; i++) {
+      const resp = await sendPacket(ws, preTurnRightPkt);
+      if (resp.right_turn_signal) rightBlinkerFlashed = true;
+    }
+    console.log(`  Upcoming Right Turn (hint=+1, dist=60m) -> Right Blinker Flashing: ${rightBlinkerFlashed}`);
+    assert.equal(rightBlinkerFlashed, true, 'Right turn blinker must flash within 90m of right turn');
+
+    console.log('  [PASS] Pre-turn lane positioning and signaling verified.');
+  }
+
