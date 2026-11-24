@@ -357,7 +357,7 @@ function updateSceneCulling(cameraPosition, cullScale = 1.0) {
     const dx = c.x - x;
     const dy = c.y - y;
     const dz = c.z - z;
-    c.mesh.visible = dx * dx + dy * dy + dz * dz < c.maxDistSq;
+    c.mesh.visible = (dx * dx + dy * dy + dz * dz) < (c.maxDistSq * scaleSq);
   }
 }
 
