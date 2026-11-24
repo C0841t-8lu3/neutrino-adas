@@ -36,9 +36,12 @@ public:
     LongitudinalController& getLongitudinalController() { return longitudinal_ctrl_; }
     LateralController& getLateralController() { return lateral_ctrl_; }
     SignalActuatorManager& getSignalManager() { return signal_mgr_; }
+    BehaviorPlanner& getBehaviorPlanner() { return behavior_planner_; }
+    JerkLimiter& getJerkLimiter() { return jerk_limiter_; }
 
 private:
     AdasConfig config_;
+    DriveProfile current_profile_ = DriveProfile::STANDARD;
     std::unique_ptr<IForwardScanner> forward_scanner_;
     std::unique_ptr<IBlindSpotScanner> blind_spot_scanner_;
     LongitudinalController longitudinal_ctrl_;
