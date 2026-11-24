@@ -266,3 +266,41 @@ export class SensorNoiseModel {
           age: 1
         });
         matchedTrackIds.add(newId);
+      }
+    }
+
+    // Coasting / Deletion for missed tracks
+    const deadTracks = [];
+    for (const [trackId, tr] of this._tracks.entries()) {
+      if (!matchedTrackIds.has(trackId)) {
+        tr.misses++;
+        // Coast position forward based on estimated velocity
+        tr.x += tr.vx * safeDt;
+        tr.z += tr.vz * safeDt;
+        // Purge if missing for more than 4 consecutive frames (~65ms)
+        if (tr.misses > 4) {
+          deadTracks.push(trackId);
+        }
+      }
+    }
+    for (const id of deadTracks) {
+      this._tracks.delete(id);
+    }
+
+    // Assemble final filtered obstacle output
+    for (const [trackId, tr] of this._tracks.entries()) {
+      if (tr.misses <= 2) {
+        this._processedObstacles.push({
+          x: Math.round(tr.x * 100) / 100,
+          z: Math.round(tr.z * 100) / 100,
+          speed: Math.round(tr.speed * 100) / 100,
+          type: tr.type,
+          id: trackId
+        });
+      }
+    }
+
+    this.lastFilteredCount = this._processedObstacles.length;
+    return this._processedObstacles;
+  }
+}
