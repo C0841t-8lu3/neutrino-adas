@@ -490,7 +490,10 @@ class NYCMapSystem {
     this.cameraSystem = cameraSystem;
     this.allBlocks = allBlocks;
     this.onTeleport = onTeleport;
+    this.onDriveTo = onDriveTo;
     this.onToggle = onToggle;
+    this.routePlanner = null;
+    this.pendingDest = null;
 
     this.miniCanvas = document.getElementById('minimap-canvas');
     this.miniCtx = this.miniCanvas ? this.miniCanvas.getContext('2d') : null;
