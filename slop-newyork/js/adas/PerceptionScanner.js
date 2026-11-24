@@ -85,7 +85,24 @@ export class PerceptionScanner {
     this.trafficSystem = trafficSystem;
   }
 
-  scanPerception(car, elapsed = 0) {
+  _acquireTrafficItem(index) {
+    if (index >= this._trafficPool.length) {
+      this._trafficPool.push({
+        x: 0,
+        z: 0,
+        v: 0,
+        half: 2.0,
+        kind: 'Car',
+        isBus: false,
+        isPedestrian: false,
+        vx: 0,
+        vz: 0
+      });
+    }
+    return this._trafficPool[index];
+  }
+
+  scanPerception(car, elapsed = 0, routePlanner = null) {
     const px = car.position.x;
     const pz = car.position.z;
     const sin = Math.sin(car.heading);
