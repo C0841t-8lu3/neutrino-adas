@@ -80,3 +80,44 @@ async function runFsdBehaviorVerification() {
     assert.ok(brakeOutputs[0] < 0.6, `Frame 0 brake (${brakeOutputs[0]}) should be smooth, not an instant slam`);
     
     // Consecutive differences must be bounded by comfort jerk limit
+    for (let i = 1; i < brakeOutputs.length; i++) {
+      const deltaBrake = Math.abs(brakeOutputs[i] - brakeOutputs[i - 1]);
+      assert.ok(deltaBrake <= 0.25, `Step ${i} delta brake (${deltaBrake.toFixed(3)}) exceeds comfort jerk limit`);
+    }
+    console.log('  [PASS] Service braking is S-curve jerk-limited and comfortable.');
+  }
+
+  // --------------------------------------------------------------------------
+  // TEST 2: Hard Safety Bypass on AEB Emergency (Scenario 2 Pedestrian Jaywalk)
+  // --------------------------------------------------------------------------
+  console.log('\n[TEST 2] Verifying 1-Frame Hard Safety Bypass on AEB (Pedestrian Jaywalk)...');
+  {
+    // Ego at 10 m/s, pedestrian suddenly darting across at 12m ahead (TTC ~ 1.2s -> CRITICAL AEB)
+    const respAeb = await sendPacket(ws, {
+      ...baseTelemetry,
+      speed: 10.0,
+      obs: [{ x: 0.0, z: 112.0, speed: 0.0, type: 2 }] // Pedestrian in ego corridor (type 2)
+    });
+
+    console.log(`  AEB Response -> Mode: ${respAeb.drive_mode} | Brake: ${respAeb.brake.toFixed(2)} | Horn: ${respAeb.horn_active} | Hazards: ${respAeb.hazard_lights}`);
+    
+    assert.equal(respAeb.drive_mode, 5, 'Drive mode must be 5 (MODE_AEB_EMERGENCY)');
+    assert.equal(respAeb.brake, 1.0, 'Brake MUST hit 1.0 in exactly 1 frame (JerkLimiter hard safety bypass)');
+    assert.equal(respAeb.horn_active, true, 'Horn must sound immediately during AEB emergency');
+    assert.equal(respAeb.hazard_lights, true, 'Hazard lights must activate during AEB emergency');
+    console.log('  [PASS] AEB Hard Safety Bypass triggered 100% braking in 1 frame!');
+  }
+
+  // --------------------------------------------------------------------------
+  // TEST 3: Driving Profiles (CHILL vs STANDARD vs HURRY Headway Dynamics)
+  // --------------------------------------------------------------------------
+  console.log('\n[TEST 3] Verifying FSD Driving Profiles (CHILL vs STANDARD vs HURRY Headway)...');
+  {
+    // Settle system back to cruising (empty road)
+    for (let i = 0; i < 20; i++) {
+      await sendPacket(ws, { ...baseTelemetry, speed: 8.0, obs: [] });
+    }
+
+    // Lead vehicle at 20m ahead (z = 120.0), moving at 8.0 m/s:
+    // Lead distance = 20.0 - 2.25 - 2.2 = 15.55m
+    // - CHILL headway (1.8s): desired gap = 2.0 + 8.0*1.8 = 16.4m -> relaxed conservative follow
