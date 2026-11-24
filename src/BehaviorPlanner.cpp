@@ -75,3 +75,29 @@ BehaviorDecision BehaviorPlanner::plan(
     // Never initiate a lane change within the final 20m before an intersection or inside an intersection box.
     bool near_or_in_intersection = ego.in_intersection || (ego.dist_to_next_turn > 0.0f && ego.dist_to_next_turn < 20.0f);
 
+    // 1. Route-Aware Pre-Turn Lane Selection (50m - 95m ahead)
+    bool is_preturn_active = false;
+    int turn_hint = (ego.pre_turn_lane_hint != 0) ? ego.pre_turn_lane_hint : ego.turn_signal_hint;
+    if (ego.has_route && turn_hint != 0 && ego.dist_to_next_turn >= 20.0f && ego.dist_to_next_turn <= 95.0f && !near_or_in_intersection) {
+        is_preturn_active = true;
+        if (turn_hint < 0) {
+            // Left turn upcoming -> Target leftmost lane (lane 0)
+            if (desired_lane_ > 0 && !lane_change_in_progress_ && lane_change_cooldown_ <= 0.0f) {
+                if (!bsm.left_bsm) {
+                    lane_change_in_progress_ = true;
+                    pending_lane_ = desired_lane_ - 1;
+                    lane_change_dir_ = -1;
+                    lane_change_prep_timer_ = 1.5f;
+                    decision.behavior_status = "QNX FSD: Pre-Turn Positioning -> Leftmost Turn Lane";
+                }
+            }
+        } else if (turn_hint > 0) {
+            // Right turn upcoming -> Target rightmost lane (lane 2)
+            if (desired_lane_ < 2 && !lane_change_in_progress_ && lane_change_cooldown_ <= 0.0f) {
+                if (!bsm.right_bsm) {
+                    lane_change_in_progress_ = true;
+                    pending_lane_ = desired_lane_ + 1;
+                    lane_change_dir_ = +1;
+                    lane_change_prep_timer_ = 1.5f;
+                    decision.behavior_status = "QNX FSD: Pre-Turn Positioning -> Rightmost Turn Lane";
+                }
