@@ -67,3 +67,38 @@ export class TelemetryRecorder {
     slot.rttUs = frame.rttUs || 0;
     slot.bsmAlert = Boolean(frame.bsmAlert);
     slot.aebActive = Boolean(frame.aebActive);
+    slot.watchdogOk = frame.watchdogOk !== undefined ? frame.watchdogOk : true;
+    slot.laneOffset = frame.laneOffset || 0;
+    slot.status = frame.status || '';
+
+    // Track incident statistics
+    if (slot.ttc > 0 && slot.ttc < this.minTtcObserved) {
+      this.minTtcObserved = slot.ttc;
+    }
+    if (slot.brake > this.maxBrakeObserved) {
+      this.maxBrakeObserved = slot.brake;
+    }
+    if (slot.aebActive && !this._lastAebState) {
+      this.totalAebEvents++;
+    }
+    this._lastAebState = slot.aebActive;
+
+    if (frame.collisionOccurred) {
+      this.totalCollisions++;
+    }
+    if (frame.bsmAbortOccurred) {
+      this.totalBsmAborts++;
+    }
+
+    this.head = (this.head + 1) % this.capacity;
+    if (this.count < this.capacity) {
+      this.count++;
+    }
+  }
+
+  getOrderedFrames() {
+    const frames = [];
+    if (this.count === 0) return frames;
+
+    const startIdx = this.count < this.capacity ? 0 : this.head;
+    for (let i = 0; i < this.count; i++) {
