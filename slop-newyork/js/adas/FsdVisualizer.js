@@ -30,3 +30,34 @@ export class FsdVisualizer {
     for (let i = 0; i < this.maxSegments; i++) {
       const i0 = i * 2;
       const i1 = i * 2 + 1;
+      const i2 = (i + 1) * 2;
+      const i3 = (i + 1) * 2 + 1;
+      const base = i * 6;
+      this.ribbonIndices[base]     = i0;
+      this.ribbonIndices[base + 1] = i1;
+      this.ribbonIndices[base + 2] = i2;
+      this.ribbonIndices[base + 3] = i2;
+      this.ribbonIndices[base + 4] = i1;
+      this.ribbonIndices[base + 5] = i3;
+    }
+
+    this.ribbonGeo = new THREE.BufferGeometry();
+    this.posAttr = new THREE.BufferAttribute(this.ribbonPositions, 3);
+    this.colorAttr = new THREE.BufferAttribute(this.ribbonColors, 3);
+    this.posAttr.setUsage(THREE.DynamicDrawUsage);
+    this.colorAttr.setUsage(THREE.DynamicDrawUsage);
+    this.ribbonGeo.setAttribute('position', this.posAttr);
+    this.ribbonGeo.setAttribute('color', this.colorAttr);
+    this.ribbonGeo.setIndex(new THREE.BufferAttribute(this.ribbonIndices, 1));
+
+    // Zero-shadow, double-sided glowing unlit ribbon
+    const MatClass = THREE.MeshBasicNodeMaterial || THREE.MeshBasicMaterial;
+    this.ribbonMat = new MatClass({
+      transparent: true,
+      opacity: 0.68,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      vertexColors: true
+    });
+    this.ribbonMesh = new THREE.Mesh(this.ribbonGeo, this.ribbonMat);
+    this.ribbonMesh.frustumCulled = false;
