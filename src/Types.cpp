@@ -19,4 +19,17 @@ const char* modeToString(int mode) {
     return modeToString(static_cast<DriveMode>(mode));
 }
 
+const char* profileToString(DriveProfile profile) {
+    switch (profile) {
+        case DriveProfile::CHILL:    return "CHILL";
+        case DriveProfile::STANDARD: return "STANDARD";
+        case DriveProfile::HURRY:    return "HURRY";
+        default:                     return "STANDARD";
+    }
+}
+
+const char* profileToString(int profile) {
+    return profileToString(static_cast<DriveProfile>(profile));
+}
+
 } // namespace adas
