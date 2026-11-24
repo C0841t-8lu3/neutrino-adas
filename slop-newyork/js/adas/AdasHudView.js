@@ -318,13 +318,63 @@ export class AdasHudView {
 
     // QNX Status Dot
     if (elDot) {
-      elDot.style.background = data.qnxConnected ? '#10b981' : '#ef4444';
-      elDot.style.boxShadow = data.qnxConnected ? '0 0 8px #10b981' : '0 0 8px #ef4444';
+      this._setStyle(elDot, 'background', data.qnxConnected ? '#10b981' : '#ef4444');
+      this._setStyle(elDot, 'boxShadow', data.qnxConnected ? '0 0 8px #10b981' : '0 0 8px #ef4444');
     }
 
     if (elBtn) {
-      elBtn.textContent = data.enabled ? 'ON [P]' : 'OFF [P]';
-      elBtn.style.background = data.enabled ? '#06b6d4' : '#475569';
+      this._setDomText(elBtn, data.enabled ? 'ON' : 'OFF');
+      this._setStyle(elBtn, 'background', data.enabled ? '#06b6d4' : '#475569');
+    }
+
+    // Profile selector pill updates
+    const p = (data.driveProfile !== undefined) ? data.driveProfile : 1;
+    const btnChill = document.getElementById('btn-profile-chill');
+    const btnStd = document.getElementById('btn-profile-standard');
+    const btnHurry = document.getElementById('btn-profile-hurry');
+    if (btnChill && btnStd && btnHurry) {
+      this._setStyle(btnChill, 'background', p === 0 ? '#0284c7' : 'transparent');
+      this._setStyle(btnChill, 'color', p === 0 ? '#ffffff' : '#94a3b8');
+      this._setStyle(btnChill, 'boxShadow', p === 0 ? '0 0 10px rgba(2,132,199,0.5)' : 'none');
+
+      this._setStyle(btnStd, 'background', p === 1 ? '#0284c7' : 'transparent');
+      this._setStyle(btnStd, 'color', p === 1 ? '#ffffff' : '#94a3b8');
+      this._setStyle(btnStd, 'boxShadow', p === 1 ? '0 0 10px rgba(2,132,199,0.5)' : 'none');
+
+      this._setStyle(btnHurry, 'background', p === 2 ? '#0284c7' : 'transparent');
+      this._setStyle(btnHurry, 'color', p === 2 ? '#ffffff' : '#94a3b8');
+      this._setStyle(btnHurry, 'boxShadow', p === 2 ? '0 0 10px rgba(2,132,199,0.5)' : 'none');
+    }
+
+    // Tesla FSD Status Strip Updates
+    const elSpeedKmh = document.getElementById('fsd-speed-kmh');
+    if (elSpeedKmh) {
+      const kmh = Math.round((data.speedMps || 0) * 3.6);
+      this._setDomText(elSpeedKmh, String(kmh));
+    }
+    const elTurnIcon = document.getElementById('fsd-turn-icon');
+    const elTurnText = document.getElementById('fsd-turn-text');
+    if (elTurnIcon && elTurnText) {
+      if (data.nextTurnHint === 'LEFT') {
+        this._setDomText(elTurnIcon, '↰');
+        this._setDomText(elTurnText, `Left in ${data.nextTurnDistance || 0}m`);
+      } else if (data.nextTurnHint === 'RIGHT') {
+        this._setDomText(elTurnIcon, '↱');
+        this._setDomText(elTurnText, `Right in ${data.nextTurnDistance || 0}m`);
+      } else if (data.nextTurnHint === 'ARRIVING' || data.nextTurnHint === 'ARRIVED') {
+        this._setDomText(elTurnIcon, '🏁');
+        this._setDomText(elTurnText, 'Arriving');
+      } else {
+        this._setDomText(elTurnIcon, '⬆');
+        this._setDomText(elTurnText, data.hasActiveRoute ? 'Follow Route' : 'Cruising');
+      }
+    }
+
+    const elVisBtn = document.getElementById('btn-toggle-fsd-vis');
+    if (elVisBtn && data.fsdVisEnabled !== undefined) {
+      this._setDomText(elVisBtn, `Vis [V]: ${data.fsdVisEnabled ? 'ON' : 'OFF'}`);
+      this._setStyle(elVisBtn, 'color', data.fsdVisEnabled ? '#38bdf8' : '#94a3b8');
+      this._setStyle(elVisBtn, 'borderColor', data.fsdVisEnabled ? '#0284c7' : '#475569');
     }
 
     if (elState) {
