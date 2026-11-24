@@ -228,3 +228,41 @@ test('PerformanceGovernor manages quality profiles (AUTO, LOW, HIGH)', () => {
   governor.setProfile('LOW');
   assert.equal(governor.profile, 'LOW');
   assert.equal(governor.currentDpr, 0.75);
+  assert.equal(governor.cullScale, 0.62);
+  assert.equal(governor.mirrorSkipInterval, 4);
+
+  governor.setProfile('HIGH');
+  assert.equal(governor.profile, 'HIGH');
+  assert.equal(governor.currentDpr, 1.0);
+  assert.equal(governor.cullScale, 1.0);
+  assert.equal(governor.mirrorSkipInterval, 2);
+
+  governor.cycleProfile();
+  assert.equal(governor.profile, 'AUTO');
+});
+
+test('AutonomousDriver engages Safe Fail-Stop on 150ms Watchdog timeout and recovers', () => {
+  const driverSource = readFileSync(join(__dirname, '../js/autonomous-driver.js'), 'utf8');
+  const { AutonomousDriver } = loadModule(driverSource, {
+    globals: { performance, console, Date, Math },
+    imports: {
+      './adas/QnxTelemetryClient.js': { QnxTelemetryClient: class { connect() {} isConnected() { return true; } send() {} } },
+      './adas/PerceptionScanner.js': { PerceptionScanner: class { scanPerception() { return { trafficList: [], leadDist: 999, leadRelSpeed: 0, ttc: 999 }; } buildObstaclePayload() { return []; } } },
+      './adas/SideMirrorRenderer.js': { SideMirrorRenderer: class { renderSideMirror() {} } },
+      './adas/AdasHudView.js': { AdasHudView: class { updateHud() {} setVisibility() {} } },
+      './adas/HornAudioEngine.js': { HornAudioEngine: class { initAudio() {} playHornSound() {} } },
+      './adas/RoutePlanner.js': { RoutePlanner: class { hasActiveRoute() { return false; } } },
+      './adas/ActuatorDynamics.js': { ActuatorDynamics: class { step(t, b, s) { return { throttle: t, brake: b, steer: s }; } } },
+      './adas/TelemetryRecorder.js': { TelemetryRecorder: class { record() {} } },
+      './adas/ScenarioInjector.js': { ScenarioInjector: class { update() {} } },
+      './adas/FsdVisualizer.js': { FsdVisualizer: class { update() {} toggle() {} setVisible() {} } }
+    }
+  });
+
+  const mockCar = {
+    position: { x: 0, y: 0, z: 0 },
+    speed: 10,
+    heading: 0,
+    steerAngle: 0,
+    carState: { value: { x: 0, y: 0, z: 0 } }
+  };
