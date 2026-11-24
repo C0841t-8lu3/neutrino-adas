@@ -113,3 +113,41 @@ test('TelemetryRecorder circular ring buffer records, wraps and computes scoreca
       steerCmd: 0.0,
       driveMode: 1,
       leadDist: 30.0 - i,
+      ttc: 30.0 - i > 0 ? (30.0 - i) / 2.0 : 999,
+      rttUs: 120,
+      bsmAlert: false,
+      aebActive: i === 7,
+      watchdogOk: true,
+      laneOffset: 0.0,
+      status: 'Cruising'
+    });
+  }
+
+  assert.equal(recorder.capacity, 10);
+  assert.equal(recorder.count, 10, 'Count capped at buffer capacity');
+  assert.equal(recorder.head, 5, 'Head wrapped around (15 % 10 = 5)');
+
+  // Scorecard statistics
+  const scorecard = recorder.getScorecard();
+  assert.ok(scorecard);
+  assert.equal(scorecard.totalFrames, 10);
+  assert.equal(scorecard.aebEvents, 1);
+  assert.ok(scorecard.maxBrakeCmd >= 0.95);
+  assert.ok(scorecard.minTtcS < 15.0);
+
+  // CSV generation
+  const csv = recorder.exportCsv();
+  assert.ok(csv.startsWith('time_s,seq,x_m,y_m,z_m,speed_mps,steer_rad,throttle,brake'));
+  const lines = csv.trim().split('\n');
+  assert.equal(lines.length, 11, 'Header + 10 recorded rows');
+
+  // JSON generation
+  const json = recorder.exportJson();
+  const parsed = JSON.parse(json);
+  assert.equal(parsed.samples.length, 10);
+  assert.ok(parsed.scorecard);
+});
+
+test('ScenarioInjector triggers Euro NCAP scenarios and toggles chaos mode', () => {
+  const { ScenarioInjector } = loadModule(scenarioSource);
+
