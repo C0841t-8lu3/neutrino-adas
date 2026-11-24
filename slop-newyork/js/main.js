@@ -574,6 +574,10 @@ async function initApp() {
   const openMapBtn = document.getElementById('btn-open-map');
   if (openMapBtn) openMapBtn.addEventListener('click', () => mapSystem.toggleFullMap(true));
 
+  if (typeof mapSystem.setRoutePlanner === 'function' && typeof autonomousDriver !== 'undefined') {
+    mapSystem.setRoutePlanner(autonomousDriver.routePlanner);
+  }
+
   if (hudToggleBtn) {
     hudToggleBtn.addEventListener('click', () => {
       document.body.classList.toggle('hud-minimized');
@@ -779,7 +783,30 @@ async function initApp() {
     colorGrade.update();
     mapSystem.update();
     audioSystem.update(dt, elapsed, cameraSystem.camera, lightingSystem.activePresetId === 'midnight');
-    if (warmedUp) updateSceneCulling(cameraSystem.camera.position); // the warm-up frame draws every chunk
+
+    // Performance-Critical Adaptive Frame Governor
+    let perfState = null;
+    if (perfGovernor) {
+      const calls = renderer.info?.render?.calls || 0;
+      const triangles = renderer.info?.render?.triangles || 0;
+      perfState = perfGovernor.update(rawDt * 1000, {
+        drawCalls: calls,
+        triangles: triangles,
+        qnxRttUs: autonomousDriver.rttUs,
+        activeObstacles: autonomousDriver.lastObstacleCount
+      });
+
+      if (perfState && perfState.profile === 'LOW') {
+        if (lightingSystem?.sunLight?.castShadow) lightingSystem.sunLight.castShadow = false;
+        if (ssrPass?.intensity?.value > 0) ssrPass.intensity.value = 0.0;
+      } else if (perfState) {
+        if (lightingSystem?.sunLight && !lightingSystem.sunLight.castShadow) lightingSystem.sunLight.castShadow = true;
+        if (ssrPass?.intensity && ssrPass.intensity.value === 0) ssrPass.intensity.value = 0.50;
+      }
+    }
+
+    const cullScale = perfState ? perfState.cullScale : 1.0;
+    if (warmedUp) updateSceneCulling(cameraSystem.camera.position, cullScale); // the warm-up frame draws every chunk
     // Traffic collisions can move the player after controller updates; finalize moving hierarchies here.
     for (const root of dynamicRoots) root.updateMatrixWorld();
 
