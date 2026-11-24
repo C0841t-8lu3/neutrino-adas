@@ -48,10 +48,16 @@ SignalOutput SignalActuatorManager::computeSignals(
     if (hazard_req) {
         left_blinker = blinker_phase_;
         right_blinker = blinker_phase_;
-    } else if (lane_change_active || lateral_error > 0.4f) {
-        left_blinker = blinker_phase_;
-    } else if (lateral_error < -0.4f) {
-        right_blinker = blinker_phase_;
+    } else {
+        bool left_req = (turn_signal_hint < 0) || (lane_change_active && lane_change_direction < 0);
+        bool right_req = (turn_signal_hint > 0) || (lane_change_active && lane_change_direction > 0);
+
+        if (left_req) {
+            left_blinker = blinker_phase_;
+        }
+        if (right_req) {
+            right_blinker = blinker_phase_;
+        }
     }
 
     out.left_turn_signal = left_blinker;
