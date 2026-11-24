@@ -186,3 +186,35 @@ export class RoutePlanner {
     const maxIterations = 6000;
 
     while (openSet.length > 0 && iterations++ < maxIterations) {
+      // Find edge with lowest fScore
+      let bestIdx = 0;
+      let lowestF = fScore.get(openSet[0].id) ?? Infinity;
+      for (let i = 1; i < openSet.length; i++) {
+        const score = fScore.get(openSet[i].id) ?? Infinity;
+        if (score < lowestF) {
+          lowestF = score;
+          bestIdx = i;
+        }
+      }
+
+      const current = openSet.splice(bestIdx, 1)[0];
+
+      if (current.id === goalEdge.id) {
+        foundGoal = true;
+        break;
+      }
+
+      const currentG = gScore.get(current.id) ?? Infinity;
+
+      // Expand outgoing valid moves at the intersection
+      const moves = (current.moves && current.moves.length > 0)
+        ? current.moves
+        : (current.to && current.to.out ? current.to.out.map((toEdge) => ({ to: toEdge, turn: 'S' })) : []);
+      for (const m of moves) {
+        const neighbor = m.to;
+        if (!neighbor) continue;
+
+        // Approximate turn curve distance
+        const turnLen = (m.turn === 'S') ? 6.0 : (m.turn === 'L' || m.turn === 'R') ? 14.0 : 18.0;
+        const tentativeG = currentG + current.len + turnLen;
+
