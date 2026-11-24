@@ -60,3 +60,34 @@ function createMockRoadNetwork() {
   // Turn connection from edge0 to edge1 at nodeB
   const turnCurve = {
     from: edge0,
+    to: edge1,
+    fromEdge: edge0,
+    toEdge: edge1,
+    p0x: 0, p0z: 95,
+    p1x: 0, p1z: 100,
+    p2x: 5, p2z: 100,
+    len: 8.0,
+    curve: {
+      p0: { x: 0, z: 95 },
+      p1: { x: 0, z: 100 },
+      p2: { x: 5, z: 100 },
+      len: 8.0
+    }
+  };
+
+  const network = {
+    edges: [edge0, edge1],
+    nodes: [nodeA, nodeB, nodeC],
+    turns: [turnCurve],
+    turnsByFrom: new Map([[edge0, [turnCurve]]]),
+    turnsByTo: new Map([[edge1, [turnCurve]]])
+  };
+
+  return { network, edge0, edge1, turnCurve };
+}
+
+test('RoutePlanner snaps coordinates to nearest valid edge', () => {
+  const { RoutePlanner } = loadModule(plannerSource, {
+    imports: { '../city-config.js': { getLocationLabel: (x, z) => `${x}, ${z}` } }
+  });
+  const { network, edge0 } = createMockRoadNetwork();
