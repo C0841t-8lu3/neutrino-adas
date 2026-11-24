@@ -234,6 +234,18 @@ export class AutonomousDriver {
       this.controllerManager.keys.left = false;
       this.controllerManager.keys.right = false;
     }
+    console.log(`[AutonomousDriver] Autopilot: ${this.enabled ? 'ENGAGED' : 'DISENGAGED'}`);
+  }
+
+  setDriveProfile(profile) {
+    this.driveProfile = (profile >= 0 && profile <= 2) ? profile : 1;
+    const names = ['CHILL', 'STANDARD', 'HURRY'];
+    console.log(`[AutonomousDriver] FSD Driving Profile: ${names[this.driveProfile]}`);
+    this.updateHud();
+  }
+
+  cycleDriveProfile() {
+    this.setDriveProfile((this.driveProfile + 1) % 3);
   }
 
   bindKeyboard() {
@@ -241,7 +253,12 @@ export class AutonomousDriver {
     window.addEventListener('keydown', (e) => {
       this.initAudio();
       if (e.code === 'KeyP') {
-        this.toggle();
+        this.cycleDriveProfile();
+      } else if (e.code === 'KeyV') {
+        if (this.fsdVisualizer) {
+          this.fsdVisualizer.toggle();
+          this.updateHud();
+        }
       } else if (e.code === 'KeyQ' || e.code === 'ArrowLeft') {
         this.requestLaneChange(-1);
       } else if (e.code === 'KeyE' || e.code === 'ArrowRight') {
@@ -261,7 +278,7 @@ export class AutonomousDriver {
   }
 
   scanPerception(car, elapsed = 0) {
-    const scan = this.perceptionScanner.scanPerception(car, elapsed);
+    const scan = this.perceptionScanner.scanPerception(car, elapsed, this.routePlanner);
     this.leadDist = scan.leadDist;
     this.leadRelSpeed = scan.leadRelSpeed;
     this.closestObstacleName = scan.closestObstacleName;
