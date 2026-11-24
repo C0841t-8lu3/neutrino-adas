@@ -94,3 +94,35 @@ async function runChryslerBuildingE2ETest() {
         let maxDYaw = 0;
         for (let j = i; j < Math.min(waypoints.length, i + 10); j++) {
           let dy = waypoints[j].heading - waypoints[i - 1].heading;
+          while (dy > Math.PI) dy -= 2 * Math.PI;
+          while (dy < -Math.PI) dy += 2 * Math.PI;
+          if (Math.abs(dy) > Math.abs(maxDYaw)) maxDYaw = dy;
+        }
+        if (Math.abs(maxDYaw) > 0.3) {
+          targetTurnIdx = i;
+          break;
+        }
+      }
+    }
+    assert.ok(targetTurnIdx > 0, 'Route must contain an actual turn with approach distance >= 60m');
+    const turnWp = waypoints[targetTurnIdx];
+
+    // Position car 34m before turn (within 30m-45m zone)
+    let sampleIdx34m = targetTurnIdx;
+    while (sampleIdx34m > 0 && (turnWp.distFromStart - waypoints[sampleIdx34m].distFromStart) < 34.0) {
+      sampleIdx34m--;
+    }
+    const ego34m = waypoints[sampleIdx34m];
+    const ref34m = planner.getTrackingReference(ego34m, ego34m.heading, 8.0);
+    assert.ok(ref34m.nextTurnDistance <= 45.0 && ref34m.nextTurnDistance >= 20.0, `Next turn distance ${ref34m.nextTurnDistance}m within 20-45m`);
+    assert.notEqual(ref34m.turnSignalHint, 0, 'Turn signal MUST activate 30-45m before turn');
+
+    // Position car 65m before turn: signal should NOT be active yet (>45m)
+    let sampleIdx65m = sampleIdx34m;
+    while (sampleIdx65m > 0 && (turnWp.distFromStart - waypoints[sampleIdx65m].distFromStart) < 65.0) {
+      sampleIdx65m--;
+    }
+    const ego65m = waypoints[sampleIdx65m];
+    const ref65m = planner.getTrackingReference(ego65m, ego65m.heading, 8.0);
+    assert.equal(ref65m.turnSignalHint, 0, 'Turn signal MUST NOT activate 65m too early');
+    console.log(`  [PASS] Blinker timing verified: OFF at ${ref65m.nextTurnDistance}m ahead, active at ${ref34m.nextTurnDistance}m ahead.`);
