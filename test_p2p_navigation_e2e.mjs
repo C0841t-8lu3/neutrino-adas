@@ -113,3 +113,32 @@ async function runEndToEndTest() {
         resolve(JSON.parse(typeof event.data === 'string' ? event.data : event.data.toString()));
       };
       ws.send(JSON.stringify(telemetry));
+    });
+
+    if (response.bridge_rtt_us) {
+      rttSamples.push(response.bridge_rtt_us);
+    }
+
+    if (step % 20 === 0 || step === maxSteps - 1 || response.drive_mode === 6 || ref.distToGoal <= 5.0) {
+      console.log(`  [Step ${String(step).padStart(3)}] Pos: (${ego.x.toFixed(1)}, ${ego.z.toFixed(1)}) | Speed: ${(ego.speed*3.6).toFixed(1)} km/h | Steer: ${response.steer_cmd.toFixed(3)} | Blinkers: [L:${response.left_turn_signal ? 1:0}, R:${response.right_turn_signal ? 1:0}] | Dist: ${ref.distToGoal.toFixed(1)}m | Mode: ${response.drive_mode} | RTT: ${response.bridge_rtt_us || '--'}µs`);
+      console.log(`           Status: "${response.status_message}"`);
+    }
+
+    // Advance ego vehicle along route toward target
+    currStepIdx = Math.min(waypoints.length - 1, currStepIdx + 3);
+    const targetWp = waypoints[currStepIdx];
+
+    ego.x = targetWp.x;
+    ego.z = targetWp.z;
+    ego.heading = targetWp.heading;
+    ego.steer_angle = response.steer_cmd;
+
+    // Check arrival
+    if (ref.distToGoal <= 3.0 || response.drive_mode === 6 || response.status_message.includes('Arrived')) {
+      arrived = true;
+      console.log(`\n[SUCCESS] Vehicle arrived at Destination Point B!`);
+      console.log(`  Final Status: "${response.status_message}"`);
+      break;
+    }
+  }
+
