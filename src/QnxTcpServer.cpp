@@ -84,6 +84,15 @@ void QnxTcpServer::handleClient(int client_sock) {
 
     char buffer[4096];
     std::string line_buffer;
+    line_buffer.reserve(4096);
+
+    // Reset controller state for new client connection
+    controller_.reset();
+
+    // Pre-allocated reusable obstacle buffer and ego state (zero dynamic heap reallocation in hot loop)
+    std::vector<adas::Obstacle> obstacles;
+    obstacles.reserve(32);
+    adas::VehicleState ego;
 
     while (running_) {
         ssize_t bytes_read = recv(client_sock, buffer, sizeof(buffer) - 1, 0);
@@ -100,8 +109,6 @@ void QnxTcpServer::handleClient(int client_sock) {
             std::string packet = line_buffer.substr(0, newline_pos);
             line_buffer.erase(0, newline_pos + 1);
 
-            adas::VehicleState ego;
-            std::vector<adas::Obstacle> obstacles;
             float dt = 0.016f;
 
             if (TelemetryCodec::parseTelemetryJson(packet, ego, obstacles, dt)) {
