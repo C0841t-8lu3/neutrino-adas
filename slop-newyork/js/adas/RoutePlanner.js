@@ -438,3 +438,34 @@ export class RoutePlanner {
         const dz = ez - wp.z;
         const dSq = dx * dx + dz * dz;
         if (dSq < closestDistSq) {
+          closestDistSq = dSq;
+          closestIdx = i;
+        }
+      }
+    }
+
+    this.currentIndex = closestIdx;
+    const closestWp = route[closestIdx];
+    const closestDist = Math.sqrt(closestDistSq);
+
+    // 2. Off-route detection and automatic rerouting
+    const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+    if (closestDist > this.offRouteThreshold && (now - this.lastRerouteTime > 3000) && this.goalPos) {
+      console.warn(`[RoutePlanner] Off-route detected (${closestDist.toFixed(1)}m > ${this.offRouteThreshold}m). Rerouting to destination...`);
+      this.lastRerouteTime = now;
+      this.planRoute(egoPos, egoHeading, this.goalPos);
+      return this.getTrackingReference(egoPos, egoHeading, egoSpeed);
+    }
+
+    // 3. Dynamic speed-adaptive lookahead distance (L = clamp(3.0 + 0.45 * speed, 3.5, 18.0) meters)
+    const lookaheadDist = Math.max(3.5, Math.min(18.0, 3.0 + 0.45 * Math.abs(egoSpeed)));
+    const targetDist = closestWp.distFromStart + lookaheadDist;
+
+    let lookaheadIdx = closestIdx;
+    while (lookaheadIdx < len - 1 && route[lookaheadIdx].distFromStart < targetDist) {
+      lookaheadIdx++;
+    }
+    const targetWp = route[lookaheadIdx];
+
+    // 4. Calculate maximum curvature over upcoming horizon and next lookahead
+    let maxCurvature = targetWp.curvature || 0.0;
