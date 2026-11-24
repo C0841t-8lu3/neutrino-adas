@@ -82,19 +82,42 @@ impl AssetServer {
                 let file_path = root_dir.join(clean_path);
                 let mime = get_mime_type(&file_path);
 
-                if file_path.exists() && file_path.is_file() {
-                    if let Ok(file) = File::open(&file_path) {
-                        let mut response = Response::from_file(file);
-                        if let Ok(header) = Header::from_bytes(&b"Content-Type"[..], mime.as_bytes()) {
-                            response.add_header(header);
+                let cached = {
+                    let cache_read = cache.read().unwrap();
+                    cache_read.get(clean_path).cloned()
+                };
+
+                let asset = match cached {
+                    Some(a) => a,
+                    None => {
+                        if file_path.exists() && file_path.is_file() {
+                            match fs::read(&file_path) {
+                                Ok(bytes) => {
+                                    let is_gz = clean_path.ends_with(".gz");
+                                    let cache_control = if clean_path.ends_with(".html") {
+                                        "no-cache"
+                                    } else {
+                                        "public, max-age=31536000, immutable"
+                                    };
+                                    let new_asset = CachedAsset {
+                                        data: Arc::new(bytes),
+                                        mime,
+                                        is_gz,
+                                        cache_control,
+                                    };
+                                    let mut cache_write = cache.write().unwrap();
+                                    cache_write.insert(clean_path.to_string(), new_asset.clone());
+                                    new_asset
+                                }
+                                Err(_) => {
+                                    let _ = request.respond(Response::from_string("File read error").with_status_code(500));
+                                    continue;
+                                }
+                            }
+                        } else {
+                            let _ = request.respond(Response::from_string("404 Not Found").with_status_code(404));
+                            continue;
                         }
-                        // Allow cross-origin module loading and caching
-                        if let Ok(cors) = Header::from_bytes(&b"Access-Control-Allow-Origin"[..], &b"*"[..]) {
-                            response.add_header(cors);
-                        }
-                        let _ = request.respond(response);
-                    } else {
-                        let _ = request.respond(Response::from_string("File open error").with_status_code(500));
                     }
                 } else {
                     let _ = request.respond(Response::from_string("404 Not Found").with_status_code(404));
