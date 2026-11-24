@@ -479,9 +479,12 @@ export class AdasHudView {
 
     // Mirror Turn Arrows
     const arrowL = document.getElementById('turn-left-indicator');
-    if (arrowL) arrowL.style.opacity = (data.leftBlinker || data.hazardLights) ? '1' : '0';
-
     const arrowR = document.getElementById('turn-right-indicator');
-    if (arrowR) arrowR.style.opacity = (data.rightBlinker || data.hazardLights) ? '1' : '0';
+    if (arrowL) {
+      this._setStyle(arrowL, 'opacity', (data.leftBlinker || data.hazardLights) ? '1' : '0');
+    }
+    if (arrowR) {
+      this._setStyle(arrowR, 'opacity', (data.rightBlinker || data.hazardLights) ? '1' : '0');
+    }
   }
 }
