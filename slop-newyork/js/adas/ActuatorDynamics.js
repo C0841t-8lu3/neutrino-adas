@@ -26,3 +26,31 @@ export class ActuatorDynamics {
     this.actualBrake = 0.0;
 
     // Active bypass flag (e.g. for deterministic unit benchmarks)
+    this.enabled = options.enabled !== undefined ? options.enabled : true;
+  }
+
+  setSurface(type) {
+    if (type === 'wet') {
+      this.surfaceType = 'wet';
+      this.frictionMu = 0.55;
+    } else {
+      this.surfaceType = 'dry';
+      this.frictionMu = 0.95;
+    }
+  }
+
+  setFriction(mu) {
+    this.frictionMu = Math.max(0.1, Math.min(1.2, mu));
+    this.surfaceType = this.frictionMu < 0.75 ? 'wet' : 'dry';
+  }
+
+  setEnabled(enabled) {
+    this.enabled = Boolean(enabled);
+  }
+
+  reset() {
+    this.actualSteer = 0.0;
+    this.actualThrottle = 0.0;
+    this.actualBrake = 0.0;
+  }
+
