@@ -228,3 +228,41 @@ export class SensorNoiseModel {
       let bestDistSq = 20.25; // 4.5^2
 
       for (const [trackId, tr] of this._tracks.entries()) {
+        if (matchedTrackIds.has(trackId)) continue;
+        const dx = m.x - tr.x;
+        const dz = m.z - tr.z;
+        const dSq = dx * dx + dz * dz;
+        if (dSq < bestDistSq) {
+          bestDistSq = dSq;
+          bestTrackId = trackId;
+        }
+      }
+
+      if (bestTrackId !== null) {
+        // Track Update Step
+        matchedTrackIds.add(bestTrackId);
+        const tr = this._tracks.get(bestTrackId);
+        const resX = m.x - tr.x;
+        const resZ = m.z - tr.z;
+
+        tr.x += alpha * resX;
+        tr.z += alpha * resZ;
+        tr.vx += (beta / safeDt) * resX;
+        tr.vz += (beta / safeDt) * resZ;
+        tr.speed = (1.0 - alpha) * tr.speed + alpha * m.speed;
+        tr.misses = 0;
+        tr.age++;
+      } else {
+        // Initiate New Track
+        const newId = this._nextTrackId++;
+        this._tracks.set(newId, {
+          x: m.x,
+          z: m.z,
+          vx: 0,
+          vz: 0,
+          speed: m.speed,
+          type: m.type,
+          misses: 0,
+          age: 1
+        });
+        matchedTrackIds.add(newId);
