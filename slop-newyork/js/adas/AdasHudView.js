@@ -412,14 +412,14 @@ export class AdasHudView {
         this._setStyle(elBanner, 'borderLeftColor', '#f59e0b');
         this._setStyle(elBanner, 'color', '#fef08a');
       } else {
-        elBanner.style.borderLeftColor = '#06b6d4';
-        elBanner.style.color = '#cbd5e1';
+        this._setStyle(elBanner, 'borderLeftColor', '#06b6d4');
+        this._setStyle(elBanner, 'color', '#cbd5e1');
       }
     }
 
     // Turn Signal Indicators on HUD
     if (elTurnL) {
-      elTurnL.style.color = (data.leftBlinker || data.hazardLights) ? '#f59e0b' : '#334155';
+      this._setStyle(elTurnL, 'color', (data.leftBlinker || data.hazardLights) ? '#f59e0b' : '#475569');
     }
     if (elTurnR) {
       elTurnR.style.color = (data.rightBlinker || data.hazardLights) ? '#f59e0b' : '#334155';
