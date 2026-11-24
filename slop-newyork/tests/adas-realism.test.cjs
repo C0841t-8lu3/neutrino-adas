@@ -151,3 +151,41 @@ test('TelemetryRecorder circular ring buffer records, wraps and computes scoreca
 test('ScenarioInjector triggers Euro NCAP scenarios and toggles chaos mode', () => {
   const { ScenarioInjector } = loadModule(scenarioSource);
 
+  const mockEgo = {
+    position: { x: 10, y: 0, z: 20 },
+    heading: 0,
+    speed: 12.0
+  };
+
+  const mockCar = { x: 0, z: 0, speed: 0, v: 0, yaw: 0, dl: 0, dlv: 0 };
+  const mockPed = { placed: false, x: 0, z: 0, speed: 0, v: 0, ux: 0, uz: 0 };
+
+  const mockTraffic = {
+    cars: [mockCar],
+    peds: [mockPed]
+  };
+
+  const mockDriver = {
+    requestLaneChange: (dir) => { mockDriver.lastLaneChange = dir; },
+    actuatorDynamics: { setSurface: (s) => { mockDriver.surface = s; } },
+    perceptionScanner: { sensorNoiseModel: { setRealistic: (r) => {}, setDropoutRate: (d) => {} } }
+  };
+
+  const injector = new ScenarioInjector({
+    trafficSystem: mockTraffic,
+    autonomousDriver: mockDriver,
+    controllerManager: { entities: { car: mockEgo } }
+  });
+
+  // Scenario 1: Cut-In
+  const res1 = injector.triggerScenario(1);
+  assert.equal(res1, true);
+  assert.equal(injector.activeScenario.id, 1);
+  assert.equal(mockCar.dl, 3.6);
+  assert.equal(mockCar.dlv, -2.6);
+
+  // Scenario 2: Jaywalk
+  const res2 = injector.triggerScenario(2);
+  assert.equal(res2, true);
+  assert.equal(injector.activeScenario.id, 2);
+  assert.equal(mockPed.placed, true);
