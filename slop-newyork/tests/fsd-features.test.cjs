@@ -74,3 +74,41 @@ function createThreeMock() {
     constructor(geometry, material) {
       this.geometry = geometry;
       this.material = material;
+      this.visible = true;
+      this.position = {
+        x: 0, y: 0, z: 0,
+        set(x, y, z) { this.x = x; this.y = y; this.z = z; }
+      };
+      this.rotation = { x: 0, y: 0, z: 0 };
+    }
+  }
+
+  return {
+    BufferAttribute,
+    BufferGeometry,
+    PlaneGeometry,
+    RingGeometry,
+    MeshBasicNodeMaterial,
+    Mesh,
+    DoubleSide: 2,
+    DynamicDrawUsage: 35048
+  };
+}
+
+test('FsdVisualizer initializes pre-allocated buffers and maintains ZERO-GC buffer identity over frames', () => {
+  const threeMock = createThreeMock();
+  const { FsdVisualizer } = loadModule(fsdSource, {
+    globals: { Float32Array, Uint16Array, Math },
+    imports: { 'three/webgpu': threeMock }
+  });
+
+  const mockScene = {
+    add: () => {},
+    remove: () => {}
+  };
+
+  const visualizer = new FsdVisualizer(mockScene, {});
+  assert.ok(visualizer.ribbonPositions instanceof Float32Array);
+  assert.ok(visualizer.ribbonColors instanceof Float32Array);
+  assert.ok(visualizer.ribbonIndices instanceof Uint16Array);
+
