@@ -251,3 +251,35 @@ export class FsdVisualizer {
         this.ribbonPositions[posIdx + 2] = curZ + nz * halfWidth;
 
         this.ribbonColors[colorIdx]     = baseColor.r * alphaFade;
+        this.ribbonColors[colorIdx + 1] = baseColor.g * alphaFade;
+        this.ribbonColors[colorIdx + 2] = baseColor.b * alphaFade;
+
+        posIdx += 3;
+        colorIdx += 3;
+
+        // Step forward along steering arc
+        curH += curvature * ds;
+        curX += Math.sin(curH) * ds;
+        curZ += Math.cos(curH) * ds;
+      }
+    }
+
+    this.posAttr.needsUpdate = true;
+    this.colorAttr.needsUpdate = true;
+
+    // 3. 3D Red Stop-Line Bar
+    if (perceptionScanner?.activeRedStopObstacle) {
+      const obs = perceptionScanner.activeRedStopObstacle;
+      this.stopLineMesh.visible = true;
+      this.stopLineMesh.position.set(obs.x, carY + 0.01, obs.z);
+      this.stopLineMesh.rotation.y = obs.heading !== undefined ? obs.heading : yaw;
+    } else if (routePlanner && routePlanner.hasActiveRoute() && routePlanner._trackingRef.distToGoal <= 28.0) {
+      const lastWp = routePlanner.activeRoute[routePlanner.activeRoute.length - 1];
+      this.stopLineMesh.visible = true;
+      this.stopLineMesh.position.set(lastWp.x, carY + 0.01, lastWp.z);
+      this.stopLineMesh.rotation.y = lastWp.heading || yaw;
+    } else {
+      this.stopLineMesh.visible = false;
+    }
+
+    // 4. Minimalist Lead Vehicle Perception Marker
