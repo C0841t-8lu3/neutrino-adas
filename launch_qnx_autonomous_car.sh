@@ -24,7 +24,32 @@ echo -e "\033[1;36m=============================================================
 SSH_OPTS="-o BatchMode=yes -o LogLevel=ERROR -o ConnectTimeout=2"
 
 echo -e "\n\033[1;33m[1/3] Checking QNX 8.0 RTOS Target ($QNX_VM_IP)...\033[0m"
-if ! ssh -o BatchMode=yes -o ConnectTimeout=3 qnxuser@"$QNX_VM_IP" "uname -s" >/dev/null 2>&1; then
+if ! ssh $SSH_OPTS qnxuser@"$QNX_VM_IP" "uname -s" >/dev/null 2>&1; then
+    if [ -d "$QEMU_DIR" ] && [ -f "$QEMU_DIR/output/ifs.bin" ]; then
+        echo -e "\033[1;33m[INFO] QNX VM is offline. Automatically booting QEMU virtual machine in background...\033[0m"
+        rm -f "$QEMU_DIR/output/qemu.pid"
+        (cd "$QEMU_DIR" && nohup qemu-system-x86_64 -smp 2 --enable-kvm --cpu host -m 1G \
+            -drive file=output/disk-qemu.vmdk,if=ide,id=drv0 \
+            -netdev bridge,br=virbr0,id=net0 \
+            -device virtio-net-pci,netdev=net0,mac=52:54:00:89:c0:37 \
+            -pidfile output/qemu.pid -nographic -kernel output/ifs.bin \
+            -object rng-random,filename=/dev/urandom,id=rng0 \
+            -device virtio-rng-pci,rng=rng0 > /tmp/qemu_qnx.log 2>&1 &)
+
+        echo -n "Waiting for QNX Neutrino RTOS to boot"
+        for i in {1..20}; do
+            if ssh $SSH_OPTS qnxuser@"$QNX_VM_IP" "uname -s" >/dev/null 2>&1; then
+                echo -e " \033[1;32m[READY]\033[0m"
+                break
+            fi
+            echo -n "."
+            sleep 1
+        done
+        echo ""
+    fi
+fi
+
+if ! ssh $SSH_OPTS qnxuser@"$QNX_VM_IP" "uname -s" >/dev/null 2>&1; then
     echo -e "\033[1;31m[ERROR] Cannot reach QNX VM at $QNX_VM_IP via SSH.\033[0m"
     echo "Please ensure the QNX 8.0 QEMU virtual machine is running."
     exit 1
