@@ -91,9 +91,10 @@ ForwardScanResult ForwardRadar::scan(const VehicleState& ego, const std::vector<
             if (dist < res.lead_distance) {
                 res.lead_distance = std::max(0.1f, dist);
                 res.lead_rel_speed = obs.speed - ego.speed;
-                if (obs.type == 2) {
-                    res.pedestrian_ahead = true;
-                }
+                res.lead_lat = lat_rel;
+                res.lead_type = obs.type;
+                res.pedestrian_ahead = false;
+                res.is_lead_stop_line = false;
             }
         }
     }
