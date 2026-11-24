@@ -33,3 +33,37 @@ export class TelemetryRecorder {
         bsmAlert: false,
         aebActive: false,
         watchdogOk: true,
+        laneOffset: 0,
+        status: ''
+      };
+    }
+
+    // Safety statistics counters
+    this.totalAebEvents = 0;
+    this.totalBsmAborts = 0;
+    this.totalCollisions = 0;
+    this.minTtcObserved = 999;
+    this.maxBrakeObserved = 0;
+    this._lastAebState = false;
+  }
+
+  record(frame) {
+    if (!this.isRecording) return;
+
+    const slot = this.buffer[this.head];
+    slot.time = frame.time || 0;
+    slot.seq = frame.seq || 0;
+    slot.x = frame.x || 0;
+    slot.y = frame.y || 0;
+    slot.z = frame.z || 0;
+    slot.speed = frame.speed || 0;
+    slot.steerAngle = frame.steerAngle || 0;
+    slot.throttle = frame.throttle || 0;
+    slot.brake = frame.brake || 0;
+    slot.steerCmd = frame.steerCmd || 0;
+    slot.driveMode = frame.driveMode || 0;
+    slot.leadDist = frame.leadDist !== undefined ? frame.leadDist : 999;
+    slot.ttc = frame.ttc !== undefined ? frame.ttc : 999;
+    slot.rttUs = frame.rttUs || 0;
+    slot.bsmAlert = Boolean(frame.bsmAlert);
+    slot.aebActive = Boolean(frame.aebActive);
