@@ -12,3 +12,17 @@
     "max_steer_error_deg": 0,
     "mean_heading_error_deg": 0
   },
+  "braking_and_clearance": {
+    "min_obstacle_clearance_m": 15.6,
+    "harsh_braking_events": 2
+  },
+  "safety_incidents": {
+    "collision_count": 0,
+    "near_miss_count": 0
+  },
+  "signal_compliance": {
+    "intersections_encountered": 2,
+    "red_light_violations": 0,
+    "compliance_rate_pct": 100
+  }
+}
