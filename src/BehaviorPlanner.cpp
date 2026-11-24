@@ -179,3 +179,28 @@ BehaviorDecision BehaviorPlanner::plan(
     float cosH = std::cos(ego.heading);
 
     for (const auto& obs : obstacles) {
+        float dx = obs.x - ego.x;
+        float dz = obs.z - ego.z;
+        float fwd_dist = dx * sinH + dz * cosH;
+        float lat_dist = dx * cosH - dz * sinH;
+
+        if (fwd_dist > -1.5f && fwd_dist < 25.0f) {
+            float abs_lat = std::abs(lat_dist);
+            if (abs_lat >= 0.8f && abs_lat <= 2.6f) {
+                bool is_hazard = (obs.type == 2) || (std::abs(obs.speed) < 1.5f);
+                if (is_hazard) {
+                    if (lat_dist > 0.0f) {
+                        // Hazard to the right -> nudge left (-0.45m)
+                        if (!bsm.left_bsm) {
+                            target_nudge = -0.45f;
+                            if (decision.behavior_status.empty()) {
+                                decision.behavior_status = "QNX FSD: Lateral Nudge -> Giving Space to Right Hazard";
+                            }
+                        }
+                    } else {
+                        // Hazard to the left -> nudge right (+0.45m)
+                        if (!bsm.right_bsm) {
+                            target_nudge = +0.45f;
+                            if (decision.behavior_status.empty()) {
+                                decision.behavior_status = "QNX FSD: Lateral Nudge -> Giving Space to Left Hazard";
+                            }
