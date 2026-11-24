@@ -36,6 +36,7 @@ public:
 private:
     AdasConfig config_;
     DriveMode current_mode_ = DriveMode::CRUISING;
+    int aeb_confirm_count_ = 0;
 };
 
 } // namespace adas
