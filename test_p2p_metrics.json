@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-11-23T15:03:43.176Z",
+  "route_duration_s": 25.05,
+  "frames_sampled": 501,
+  "lane_keeping": {
+    "rms_offset_m": 0,
+    "mean_offset_m": 0,
+    "max_offset_m": 0
+  },
+  "steering_vs_curvature": {
+    "mean_steer_error_deg": 0,
+    "max_steer_error_deg": 0,
+    "mean_heading_error_deg": 0
+  },
