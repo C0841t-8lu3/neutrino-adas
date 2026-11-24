@@ -92,3 +92,35 @@ export class RoutePlanner {
       const dz = worldZ - e.sz;
 
       // Projection along edge direction
+      let s = dx * e.dx + dz * e.dz;
+      s = Math.max(0, Math.min(e.len, s));
+
+      // Lane center offset (use center lane or default 0)
+      const laneOffset = (e.lanes && e.lanes.length > 0)
+        ? e.lanes[Math.floor(e.lanes.length / 2)]
+        : 0;
+
+      const rx = e.rx !== undefined ? e.rx : -e.dz;
+      const rz = e.rz !== undefined ? e.rz : e.dx;
+      const projX = e.sx + e.dx * s + rx * (typeof laneOffset === 'number' ? laneOffset : 0);
+      const projZ = e.sz + e.dz * s + rz * (typeof laneOffset === 'number' ? laneOffset : 0);
+
+      const distSq = (worldX - projX) * (worldX - projX) + (worldZ - projZ) * (worldZ - projZ);
+      let penalty = 0;
+
+      if (heading !== null) {
+        // Vehicle forward vector
+        const vx = Math.sin(heading);
+        const vz = Math.cos(heading);
+        // Edge direction
+        const dot = vx * e.dx + vz * e.dz;
+        if (dot < -0.2) {
+          // Opposite direction: heavy penalty so we don't snap wrong-way into one-way streets
+          penalty = 4000.0;
+        }
+      }
+
+      const totalScore = distSq + penalty;
+      if (totalScore < bestDistSq) {
+        bestDistSq = totalScore;
+        bestEdge = e;
