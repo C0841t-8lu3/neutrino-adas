@@ -112,3 +112,40 @@ test('FsdVisualizer initializes pre-allocated buffers and maintains ZERO-GC buff
   assert.ok(visualizer.ribbonColors instanceof Float32Array);
   assert.ok(visualizer.ribbonIndices instanceof Uint16Array);
 
+  const origPositions = visualizer.ribbonPositions;
+  const origColors = visualizer.ribbonColors;
+  const origIndices = visualizer.ribbonIndices;
+
+  const mockCar = {
+    position: { x: 3.6, y: 0.0, z: 50.0 },
+    heading: 0.0,
+    speed: 12.0,
+    steerAngle: 0.02
+  };
+
+  // Run 60 consecutive frames
+  for (let f = 0; f < 60; f++) {
+    mockCar.position.z += 0.2;
+    visualizer.update(mockCar, {
+      driveMode: 1,
+      state: 'CRUISING'
+    }, null, null);
+
+    // Assert zero buffer reallocation
+    assert.equal(visualizer.ribbonPositions, origPositions, 'Positions buffer reference must never change');
+    assert.equal(visualizer.ribbonColors, origColors, 'Colors buffer reference must never change');
+    assert.equal(visualizer.ribbonIndices, origIndices, 'Indices buffer reference must never change');
+    assert.equal(visualizer.posAttr.needsUpdate, true);
+    assert.equal(visualizer.colorAttr.needsUpdate, true);
+  }
+});
+
+test('FsdVisualizer applies Tesla Blue, Amber, and Red color states accurately', () => {
+  const threeMock = createThreeMock();
+  const { FsdVisualizer } = loadModule(fsdSource, {
+    globals: { Float32Array, Uint16Array, Math },
+    imports: { 'three/webgpu': threeMock }
+  });
+
+  const visualizer = new FsdVisualizer(null, {});
+  const mockCar = {
