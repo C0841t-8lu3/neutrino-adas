@@ -252,3 +252,46 @@ export class ScenarioInjector {
       if (this.activeScenario.id === 1 && this._injectedActor) {
         // Cut-In: vehicle slides inward laterally towards 0
         if (this._injectedActor.dl > 0.05) {
+          this._injectedActor.dl += this._injectedActor.dlv * dt;
+        } else {
+          this._injectedActor.dl = 0;
+          this._injectedActor.dlv = 0;
+        }
+      } else if (this.activeScenario.id === 2 && this._injectedActor) {
+        // Jaywalker continues across lane
+        this._injectedActor.x += this._injectedActor.ux * this._injectedActor.v * dt;
+        this._injectedActor.z += this._injectedActor.uz * this._injectedActor.v * dt;
+      } else if (this.activeScenario.id === 3 && this._injectedActor) {
+        // Hard braking: decelerate at 6 m/s² down to 0
+        this._injectedActor.speed = Math.max(0.0, this._injectedActor.speed - 6.0 * dt);
+        this._injectedActor.v = this._injectedActor.speed;
+        this._injectedActor.x += this._injectedActor.tx * this._injectedActor.speed * dt;
+        this._injectedActor.z += this._injectedActor.tz * this._injectedActor.speed * dt;
+      } else if (this.activeScenario.id === 4 && this._injectedActor) {
+        // Pace vehicle keeping position relative to ego
+        const ego = this.getEgoCar();
+        if (ego) {
+          const sin = Math.sin(ego.heading);
+          const cos = Math.cos(ego.heading);
+          this._injectedActor.x = ego.position.x - 3.5 * sin - 3.2 * cos;
+          this._injectedActor.z = ego.position.z - 3.5 * cos + 3.2 * sin;
+          this._injectedActor.speed = ego.speed;
+          this._injectedActor.v = ego.speed;
+        }
+      }
+
+      if (this.scenarioTimer >= this.activeScenario.duration) {
+        this.cancelActiveScenario();
+      }
+    }
+
+    // 2. Stochastic Unpredictable Traffic Layer
+    if (this.unpredictableEnabled && this.trafficSystem) {
+      const ego = this.getEgoCar();
+      const px = ego ? ego.position.x : 0;
+      const pz = ego ? ego.position.z : 0;
+
+      // Unpredictable Vehicles
+      if (this.trafficSystem.cars) {
+        const cars = this.trafficSystem.cars;
+        const count = Math.min(cars.length, 30);
