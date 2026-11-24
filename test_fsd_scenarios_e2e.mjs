@@ -39,3 +39,44 @@ async function runFsdBehaviorVerification() {
     heading: 0.0,
     steer_angle: 0.0,
     current_lane: 1,
+    target_lane: 1,
+    dt: 0.016,
+    obs: [],
+    has_route: 1,
+    ref_x: 0.0,
+    ref_z: 120.0,
+    ref_heading: 0.0,
+    path_curvature: 0.0,
+    next_curvature: 0.0,
+    dist_to_goal: 500.0,
+    turn_signal_hint: 0,
+    drive_profile: 1 // STANDARD
+  };
+
+  // --------------------------------------------------------------------------
+  // TEST 1: Service Braking Smoothness (JerkLimiter in effect)
+  // --------------------------------------------------------------------------
+  console.log('\n[TEST 1] Verifying Jerk-Limited Smooth Service Braking...');
+  {
+    // Stabilize car first with empty road
+    for (let i = 0; i < 15; i++) {
+      await sendPacket(ws, { ...baseTelemetry, z: 100.0 + i * 0.16 });
+    }
+
+    // Now present a stop line at 45m ahead (smooth braking required)
+    const brakeOutputs = [];
+    for (let i = 0; i < 20; i++) {
+      const resp = await sendPacket(ws, {
+        ...baseTelemetry,
+        z: 100.0 + i * 0.16,
+        obs: [{ x: 0.0, z: 145.0, speed: 0.0, type: 3 }] // Stop line obstacle
+      });
+      brakeOutputs.push(resp.brake);
+    }
+
+    console.log(`  Brake trajectory over first 8 frames: [${brakeOutputs.slice(0, 8).map(b => b.toFixed(3)).join(', ')}]`);
+    
+    // Jerk limiter property: brake must NOT jump to 1.0 on frame 0
+    assert.ok(brakeOutputs[0] < 0.6, `Frame 0 brake (${brakeOutputs[0]}) should be smooth, not an instant slam`);
+    
+    // Consecutive differences must be bounded by comfort jerk limit
