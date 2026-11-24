@@ -168,3 +168,45 @@ export class ScenarioInjector {
           actor.dl = -3.2;
           actor.dlv = 0.0;
           this._injectedActor = actor;
+        }
+        if (this.autonomousDriver) {
+          // Command lane change towards the blind spot
+          this.autonomousDriver.requestLaneChange(-1);
+        }
+        this.activeScenario = {
+          id: 4,
+          name: 'Blind-Spot Ambush (BSM Abort)',
+          duration: 4.5,
+          startTime: (typeof performance !== 'undefined' ? performance.now() : Date.now())
+        };
+        this.lastStatus = 'Scenario 4: Blind-Spot Ambush Active (BSM Check)';
+        break;
+      }
+
+      case 5: {
+        // Scenario 5: Sensor Dropout / Wet Road Stress Test
+        // Combines wet-road friction (μ = 0.55) with realistic radar noise & 15% dropout
+        if (this.autonomousDriver) {
+          if (this.autonomousDriver.actuatorDynamics) {
+            this.autonomousDriver.actuatorDynamics.setSurface('wet');
+          }
+          if (this.autonomousDriver.perceptionScanner?.sensorNoiseModel) {
+            const snm = this.autonomousDriver.perceptionScanner.sensorNoiseModel;
+            snm.setRealistic(true);
+            snm.setDropoutRate(0.15);
+          }
+        }
+        this.activeScenario = {
+          id: 5,
+          name: 'Wet Road + Radar Dropout Stress Test',
+          duration: 10.0,
+          startTime: (typeof performance !== 'undefined' ? performance.now() : Date.now())
+        };
+        this.lastStatus = 'Scenario 5: Wet Road (μ=0.55) + 15% Dropout Active';
+        break;
+      }
+
+      default:
+        return false;
+    }
+
