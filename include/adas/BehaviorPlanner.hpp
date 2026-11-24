@@ -19,3 +19,25 @@ struct BehaviorDecision {
 };
 
 class BehaviorPlanner {
+public:
+    explicit BehaviorPlanner(const AdasConfig& config = AdasConfig());
+    ~BehaviorPlanner() = default;
+
+    void reset();
+    void setConfig(const AdasConfig& config);
+    const AdasConfig& getConfig() const { return config_; }
+
+    /**
+     * Executes human-like high-level urban driving behavior decisions:
+     * - Route-Aware Pre-Turn Lane Selection (within 90m of turn)
+     * - Proactive Overtake & Stopped-Blocker Escape (>2.5s blocked)
+     * - Lateral "Nudge" Clearance (±0.45m in-lane bias away from hazards)
+     * - Predictive Cornering & Intersection Creep
+     *
+     * Zero heap allocations in 60 Hz hot path.
+     */
+    BehaviorDecision plan(
+        const VehicleState& ego,
+        const ForwardScanResult& fwd,
+        const BlindSpotResult& bsm,
+        const std::vector<Obstacle>& obstacles,
