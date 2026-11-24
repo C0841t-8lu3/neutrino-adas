@@ -373,12 +373,13 @@ export class PerceptionScanner {
     return this._scanResult;
   }
 
-  buildObstaclePayload(car, trafficList, maxObstacles = 24) {
-    const obsPayload = [];
+  buildObstaclePayload(car, trafficList, maxObstacles = 24, dt = 0.016) {
+    this._obstaclePayload.length = 0;
     const px = car.position.x;
     const pz = car.position.z;
+    let payloadIdx = 0;
 
-    // Prioritize virtual red-light barrier at index 0
+    // Prioritize virtual red-light barrier at index 0 (never occluded/dropped by sensor noise)
     if (this.activeRedStopObstacle) {
       obsPayload.push({
         x: Math.round(this.activeRedStopObstacle.x * 10) / 10,
