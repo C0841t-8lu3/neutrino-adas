@@ -67,10 +67,9 @@ LateralOutput LateralController::step(
                 lane_change_timer_ = 3.2f;
             }
         }
-    } else if (!lane_change_active_ && fwd_scan.lead_distance < 28.0f && (ego.speed + fwd_scan.lead_rel_speed) < 8.5f) {
+    } else if (!lane_change_active_ && fwd_scan.lead_distance < 28.0f && (ego.speed + fwd_scan.lead_rel_speed) < 8.5f && !fwd_scan.is_lead_stop_line) {
         if (desired_lane_ > 0) {
             if (!bsm_scan.left_bsm) {
-                // Safe to pass: change to left lane
                 desired_lane_ = desired_lane_ - 1;
                 lane_change_active_ = true;
                 lane_change_timer_ = 3.5f;
