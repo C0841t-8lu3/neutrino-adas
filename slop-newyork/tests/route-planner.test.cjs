@@ -29,3 +29,34 @@ function createMockRoadNetwork() {
     speedLimit: 14.0,
     road: { name: '5th Ave' },
     laneIdx: 0,
+    lanes: [0],
+    moves: []
+  };
+  nodeA.out.push(edge0);
+  nodeB.in.push(edge0);
+
+  const edge1 = {
+    id: 1,
+    from: nodeB,
+    to: nodeC,
+    sx: 0,
+    sz: 100,
+    dx: 1,
+    dz: 0,
+    rx: 0,
+    rz: 1,
+    len: 100,
+    speedLimit: 11.0,
+    road: { name: 'E 42nd St' },
+    laneIdx: 0,
+    lanes: [0],
+    moves: []
+  };
+  nodeB.out.push(edge1);
+  nodeC.in.push(edge1);
+
+  edge0.moves.push({ to: edge1, turn: 'R', out: [0] });
+
+  // Turn connection from edge0 to edge1 at nodeB
+  const turnCurve = {
+    from: edge0,
