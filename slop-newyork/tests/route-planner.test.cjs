@@ -122,3 +122,34 @@ test('RoutePlanner plans A* route across connected Manhattan edges', () => {
   assert.ok(Math.hypot(first.x - start.x, first.z - start.z) < 15.0);
   assert.ok(Math.hypot(last.x - goal.x, last.z - goal.z) < 15.0);
 });
+
+test('RoutePlanner calculates speed-adaptive tracking reference and turn signals', () => {
+  const { RoutePlanner } = loadModule(plannerSource, {
+    imports: { '../city-config.js': { getLocationLabel: (x, z) => `${x}, ${z}` } }
+  });
+  const { network } = createMockRoadNetwork();
+  const planner = new RoutePlanner(network);
+
+  planner.planRoute({ x: 0, z: 10 }, 0.0, { x: 80, z: 100 });
+
+  // Vehicle approaching turn at Z=88
+  const egoPos = { x: 0, y: 0, z: 88 };
+  const ref = planner.getTrackingReference(egoPos, 0.0, 10.0);
+
+  assert.ok(ref);
+  assert.ok(ref.refZ > egoPos.z, 'Lookahead reference should be ahead of vehicle');
+  assert.ok(ref.distToGoal > 0);
+  assert.ok(ref.turnSignalHint !== undefined);
+});
+
+test('RoutePlanner detects off-route deviation and clears route', () => {
+  const { RoutePlanner } = loadModule(plannerSource, {
+    imports: { '../city-config.js': { getLocationLabel: (x, z) => `${x}, ${z}` } }
+  });
+  const { network } = createMockRoadNetwork();
+  const planner = new RoutePlanner(network);
+
+  planner.planRoute({ x: 0, z: 10 }, 0.0, { x: 80, z: 100 });
+  assert.ok(planner.hasActiveRoute());
+
+  // Deviate by 40 meters off route (X = 40, route is at X = 0)
