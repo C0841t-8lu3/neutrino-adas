@@ -469,3 +469,34 @@ export class RoutePlanner {
 
     // 4. Calculate maximum curvature over upcoming horizon and next lookahead
     let maxCurvature = targetWp.curvature || 0.0;
+    const horizonDist = closestWp.distFromStart + 22.0;
+    let hIdx = closestIdx;
+    while (hIdx < len && route[hIdx].distFromStart < horizonDist) {
+      if (route[hIdx].curvature > maxCurvature) {
+        maxCurvature = route[hIdx].curvature;
+      }
+      hIdx++;
+    }
+
+    let nextCurvature = 0.0;
+    const nextHorizonDist = closestWp.distFromStart + 55.0;
+    while (hIdx < len && route[hIdx].distFromStart < nextHorizonDist) {
+      if (route[hIdx].curvature > nextCurvature) {
+        nextCurvature = route[hIdx].curvature;
+      }
+      hIdx++;
+    }
+
+    // 5. Remaining distance to Point B
+    const totalDist = route[len - 1].distFromStart;
+    const distToGoal = Math.max(0.0, totalDist - closestWp.distFromStart);
+
+    // 6. Turn-by-turn guidance, pre-turn lane positioning, and turn signal hint
+    let turnHint = 'STRAIGHT';
+    let turnSignalHint = 0;
+    let preTurnLaneHint = 0;
+    let nextTurnDist = 999;
+    let nextStreet = '';
+    const inIntersection = !!(closestWp.isIntersection);
+
+    if (distToGoal <= 4.0) {
