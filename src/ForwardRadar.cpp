@@ -8,6 +8,7 @@ ForwardScanResult ForwardRadar::scan(const VehicleState& ego, const std::vector<
     ForwardScanResult res;
     res.lead_distance = 999.0f;
     res.lead_rel_speed = 0.0f;
+    res.lead_lat = 0.0f;
     res.time_to_collision = 999.0f;
     res.pedestrian_ahead = false;
 
