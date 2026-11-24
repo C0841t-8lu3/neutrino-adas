@@ -380,3 +380,45 @@ export class ScenarioInjector {
       <div style="display:flex;gap:4px;flex-wrap:wrap;">
         <button id="scen-btn-1" style="background:#1e293b;border:1px solid #475569;color:#e2e8f0;padding:3px 7px;border-radius:6px;cursor:pointer;font-size:10px;">1: Cut-In</button>
         <button id="scen-btn-2" style="background:#1e293b;border:1px solid #475569;color:#e2e8f0;padding:3px 7px;border-radius:6px;cursor:pointer;font-size:10px;">2: Jaywalk</button>
+        <button id="scen-btn-3" style="background:#1e293b;border:1px solid #475569;color:#e2e8f0;padding:3px 7px;border-radius:6px;cursor:pointer;font-size:10px;">3: CCRb Brake</button>
+        <button id="scen-btn-4" style="background:#1e293b;border:1px solid #475569;color:#e2e8f0;padding:3px 7px;border-radius:6px;cursor:pointer;font-size:10px;">4: BSM Ambush</button>
+        <button id="scen-btn-5" style="background:#1e293b;border:1px solid #475569;color:#e2e8f0;padding:3px 7px;border-radius:6px;cursor:pointer;font-size:10px;">5: Wet Stress</button>
+        <button id="scen-btn-unpred" style="background:#1e293b;border:1px solid #475569;color:#e2e8f0;padding:3px 7px;border-radius:6px;cursor:pointer;font-size:10px;">Chaos: ${unpredText}</button>
+      </div>
+    `;
+
+    const b1 = this.panelElement.querySelector('#scen-btn-1');
+    const b2 = this.panelElement.querySelector('#scen-btn-2');
+    const b3 = this.panelElement.querySelector('#scen-btn-3');
+    const b4 = this.panelElement.querySelector('#scen-btn-4');
+    const b5 = this.panelElement.querySelector('#scen-btn-5');
+    const bUn = this.panelElement.querySelector('#scen-btn-unpred');
+
+    if (b1) b1.onclick = () => this.triggerScenario(1);
+    if (b2) b2.onclick = () => this.triggerScenario(2);
+    if (b3) b3.onclick = () => this.triggerScenario(3);
+    if (b4) b4.onclick = () => this.triggerScenario(4);
+    if (b5) b5.onclick = () => this.triggerScenario(5);
+    if (bUn) bUn.onclick = () => this.toggleUnpredictableTraffic();
+  }
+
+  bindKeys() {
+    if (typeof window === 'undefined') return;
+    window.addEventListener('keydown', (e) => {
+      // Avoid firing when typing in an input
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+
+      if (e.code === 'Digit1') this.triggerScenario(1);
+      else if (e.code === 'Digit2') this.triggerScenario(2);
+      else if (e.code === 'Digit3') this.triggerScenario(3);
+      else if (e.code === 'Digit4') this.triggerScenario(4);
+      else if (e.code === 'Digit5') this.triggerScenario(5);
+    });
+  }
+
+  destroy() {
+    if (this.panelElement && this.panelElement.parentNode) {
+      this.panelElement.parentNode.removeChild(this.panelElement);
+    }
+  }
+}
