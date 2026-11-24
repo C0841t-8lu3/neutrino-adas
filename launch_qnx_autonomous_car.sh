@@ -58,7 +58,7 @@ echo -e "\033[1;32m[OK]\033[0m QNX 8.0 Neutrino VM is online."
 
 # 2. Deploy & Ensure QNX ADAS Server Daemon is Running on VM
 echo -e "\n\033[1;33m[2/3] Verifying QNX ADAS L3 Kernel Daemon on VM...\033[0m"
-if ! ssh -o BatchMode=yes qnxuser@"$QNX_VM_IP" "pidin | grep qnx_adas" >/dev/null 2>&1; then
+if ! ssh $SSH_OPTS qnxuser@"$QNX_VM_IP" "pidin | grep qnx_adas" >/dev/null 2>&1; then
     echo "Starting QNX ADAS Server Daemon on port $QNX_PORT..."
     scp -o BatchMode=yes "$PROJECT_DIR/nto/x86_64/o/helloworld" qnxuser@"$QNX_VM_IP":/tmp/qnx_adas_server
     ssh -o BatchMode=yes qnxuser@"$QNX_VM_IP" "chmod +x /tmp/qnx_adas_server && nohup /tmp/qnx_adas_server --server --port $QNX_PORT > /tmp/qnx_server.log 2>&1 & sleep 1"
