@@ -74,6 +74,7 @@ impl QnxWsBridge {
                 return;
             }
         };
+        let _ = ws.get_ref().set_nodelay(true);
         println!("[QnxWsBridge] 3D Simulation Client Connected to QNX RTOS Bridge!");
 
         // Connect to QNX Neutrino RTOS target on VM
@@ -82,7 +83,7 @@ impl QnxWsBridge {
             Err(e) => {
                 eprintln!("[QnxWsBridge] ERROR: Could not connect to QNX RTOS VM at {}:{}: {}", qnx_host, qnx_port, e);
                 let err_json = format!(
-                    r#"{{"throttle":0.0,"brake":0.0,"steer_cmd":0.0,"left_turn_signal":false,"right_turn_signal":false,"hazard_lights":false,"horn_active":false,"brake_lights":false,"left_mirror_blind_spot":false,"right_mirror_blind_spot":false,"drive_mode":0,"lead_distance":999.0,"lead_rel_speed":0.0,"time_to_collision":999.0,"status_message":"QNX Target Unreachable ({}:{})"}}"#,
+                    r#"{{"throttle":0.0,"brake":0.0,"steer_cmd":0.0,"left_turn_signal":false,"right_turn_signal":false,"hazard_lights":false,"horn_active":false,"brake_lights":false,"left_mirror_blind_spot":false,"right_mirror_blind_spot":false,"drive_mode":0,"lead_distance":999.0,"lead_rel_speed":0.0,"time_to_collision":999.0,"status_message":"QNX Target Unreachable ({}:{})","bridge_rtt_us":999999}}"#,
                     qnx_host, qnx_port
                 );
                 let _ = ws.send(Message::Text(err_json));
