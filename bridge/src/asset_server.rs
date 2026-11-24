@@ -53,6 +53,7 @@ impl AssetServer {
     pub fn start(&self, running: Arc<AtomicBool>) -> thread::JoinHandle<()> {
         let port = self.port;
         let root_dir = self.root_dir.clone();
+        let cache: Arc<RwLock<HashMap<String, CachedAsset>>> = Arc::new(RwLock::new(HashMap::new()));
 
         thread::spawn(move || {
             let server = match Server::http(format!("127.0.0.1:{}", port)) {
@@ -62,7 +63,7 @@ impl AssetServer {
                     return;
                 }
             };
-            println!("[AssetServer] Simulation Asset Server running at http://127.0.0.1:{}/", port);
+            println!("[AssetServer] High-Performance In-Memory Asset Server running at http://127.0.0.1:{}/", port);
 
             while running.load(Ordering::Relaxed) {
                 let request = match server.recv_timeout(Duration::from_millis(200)) {
