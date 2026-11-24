@@ -349,8 +349,10 @@ function setupSceneCulling(scene, roots, shadow = null) {
 const state = { culled: [] };
 
 // Per frame (after the warm-up frame, which must see everything): hide the chunks beyond their cull distance
-function updateSceneCulling(cameraPosition) {
+// Supports adaptive dynamic cullScale from PerformanceGovernor
+function updateSceneCulling(cameraPosition, cullScale = 1.0) {
   const { x, y, z } = cameraPosition;
+  const scaleSq = cullScale * cullScale;
   for (const c of state.culled) {
     const dx = c.x - x;
     const dy = c.y - y;
