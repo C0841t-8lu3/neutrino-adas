@@ -17,11 +17,24 @@ LateralOutput LateralController::step(
     const VehicleState& ego,
     const ForwardScanResult& fwd_scan,
     const BlindSpotResult& bsm_scan,
-    float dt
+    float dt,
+    int planned_target_lane,
+    float lateral_nudge
 ) {
     LateralOutput out;
 
-    // Overtake & Side-Mirror Accident Prevention
+    // 1. Behavior Planner Target Lane Integration
+    if (planned_target_lane >= 0 && planned_target_lane != desired_lane_) {
+        bool bsm_blocked = (planned_target_lane < desired_lane_ && bsm_scan.left_bsm) ||
+                           (planned_target_lane > desired_lane_ && bsm_scan.right_bsm);
+        if (!bsm_blocked) {
+            desired_lane_ = planned_target_lane;
+            lane_change_active_ = true;
+            lane_change_timer_ = 3.2f;
+        }
+    }
+
+    // 2. Direct Driver Target Lane Request & Blind-Spot Accident Prevention
     if (ego.target_lane != ego.current_lane) {
         if (ego.target_lane < ego.current_lane) {
             // Requested left lane change
