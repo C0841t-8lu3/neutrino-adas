@@ -219,3 +219,35 @@ export class FsdVisualizer {
       const steer = car.steerAngle || 0;
       const curvature = Math.tan(steer) / 2.87; // 2.87m wheelbase
       const ds = Math.max(0.9, Math.min(1.8, 0.6 + 0.08 * (car.speed || 10)));
+
+      let curX = px;
+      let curZ = pz;
+      let curH = yaw;
+
+      let posIdx = 0;
+      let colorIdx = 0;
+
+      for (let i = 0; i <= activeSegments; i++) {
+        const nx = Math.cos(curH);
+        const nz = -Math.sin(curH);
+        const t = i / activeSegments;
+        const alphaFade = Math.max(0.18, 1.0 - t * 0.75);
+
+        // Left vertex
+        this.ribbonPositions[posIdx]     = curX - nx * halfWidth;
+        this.ribbonPositions[posIdx + 1] = carY;
+        this.ribbonPositions[posIdx + 2] = curZ - nz * halfWidth;
+
+        this.ribbonColors[colorIdx]     = baseColor.r * alphaFade;
+        this.ribbonColors[colorIdx + 1] = baseColor.g * alphaFade;
+        this.ribbonColors[colorIdx + 2] = baseColor.b * alphaFade;
+
+        posIdx += 3;
+        colorIdx += 3;
+
+        // Right vertex
+        this.ribbonPositions[posIdx]     = curX + nx * halfWidth;
+        this.ribbonPositions[posIdx + 1] = carY;
+        this.ribbonPositions[posIdx + 2] = curZ + nz * halfWidth;
+
+        this.ribbonColors[colorIdx]     = baseColor.r * alphaFade;
