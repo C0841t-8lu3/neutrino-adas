@@ -36,3 +36,41 @@ function createThreeMock() {
       return this;
     }
     setDrawRange(start, count) {
+      this.drawRange = { start, count };
+    }
+    dispose() {}
+  }
+
+  class PlaneGeometry extends BufferGeometry {
+    constructor(width, height) {
+      super();
+      this.width = width;
+      this.height = height;
+    }
+    rotateX() { return this; }
+  }
+
+  class RingGeometry extends BufferGeometry {
+    constructor(innerRadius, outerRadius, thetaSegments) {
+      super();
+      this.innerRadius = innerRadius;
+      this.outerRadius = outerRadius;
+    }
+    rotateX() { return this; }
+  }
+
+  class MeshBasicNodeMaterial {
+    constructor(params = {}) {
+      Object.assign(this, params);
+      this.color = {
+        hex: params.color || 0xffffff,
+        setHex(h) { this.hex = h; }
+      };
+    }
+    dispose() {}
+  }
+
+  class Mesh {
+    constructor(geometry, material) {
+      this.geometry = geometry;
+      this.material = material;
