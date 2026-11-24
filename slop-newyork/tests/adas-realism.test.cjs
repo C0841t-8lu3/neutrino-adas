@@ -189,3 +189,42 @@ test('ScenarioInjector triggers Euro NCAP scenarios and toggles chaos mode', () 
   assert.equal(res2, true);
   assert.equal(injector.activeScenario.id, 2);
   assert.equal(mockPed.placed, true);
+  assert.equal(mockPed.speed, 2.8);
+
+  // Scenario 3: CCRb Brake
+  const res3 = injector.triggerScenario(3);
+  assert.equal(res3, true);
+  assert.equal(injector.activeScenario.id, 3);
+  assert.equal(mockCar.panicAcc, -6.0);
+
+  // Scenario 4: Blind-Spot Ambush
+  const res4 = injector.triggerScenario(4);
+  assert.equal(res4, true);
+  assert.equal(injector.activeScenario.id, 4);
+  assert.equal(mockDriver.lastLaneChange, -1);
+
+  // Scenario 5: Wet road stress test
+  const res5 = injector.triggerScenario(5);
+  assert.equal(res5, true);
+  assert.equal(injector.activeScenario.id, 5);
+  assert.equal(mockDriver.surface, 'wet');
+
+  // Cancel restores
+  injector.cancelActiveScenario();
+  assert.equal(injector.activeScenario, null);
+
+  // Stochastic chaos toggle
+  const chaosOn = injector.toggleUnpredictableTraffic(true);
+  assert.equal(chaosOn, true);
+  assert.equal(injector.unpredictableEnabled, true);
+});
+
+test('PerformanceGovernor manages quality profiles (AUTO, LOW, HIGH)', () => {
+  const { PerformanceGovernor } = loadModule(governorSource);
+  const governor = new PerformanceGovernor(null, { profile: 'AUTO' });
+
+  assert.equal(governor.profile, 'AUTO');
+
+  governor.setProfile('LOW');
+  assert.equal(governor.profile, 'LOW');
+  assert.equal(governor.currentDpr, 0.75);
