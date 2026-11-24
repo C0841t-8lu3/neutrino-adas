@@ -168,3 +168,37 @@ export class PerformanceGovernor {
         this.cullScale = Math.min(1.0, this.cullScale + 0.003);
         this.mirrorSkipInterval = 2;
       }
+    }
+
+    // Apply DPR changes when stepping beyond 0.04 delta
+    if (this.renderer && typeof this.renderer.setPixelRatio === 'function') {
+      if (Math.abs(this.currentDpr - this.lastAppliedDpr) >= 0.04) {
+        this.lastAppliedDpr = this.currentDpr;
+        this.renderer.setPixelRatio(this.currentDpr);
+      }
+    }
+
+    // Throttled UI Pill Update (10 Hz)
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    if (now - this.lastPillUpdate >= 100) {
+      this.lastPillUpdate = now;
+      this.updatePill();
+    }
+
+    return {
+      profile: this.profile,
+      dpr: this.currentDpr,
+      cullScale: this.cullScale,
+      mirrorSkipInterval: this.mirrorSkipInterval,
+      fps: this.fps,
+      emaFrameMs: this.emaFrameMs
+    };
+  }
+
+  updatePill(force = false) {
+    if (!this.pillElement || !this.visible) return;
+
+    let text = '';
+    const fpsColor = this.fps >= 55 ? '#10b981' : this.fps >= 35 ? '#f59e0b' : '#ef4444';
+    const rttText = this.qnxRttUs > 0 ? `${this.qnxRttUs}µs` : 'offline';
+    const profColor = this.profile === 'LOW' ? '#f59e0b' : this.profile === 'HIGH' ? '#a855f7' : '#38bdf8';
