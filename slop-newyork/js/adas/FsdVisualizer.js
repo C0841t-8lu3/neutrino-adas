@@ -125,3 +125,34 @@ export class FsdVisualizer {
   update(car, driverState = {}, routePlanner = null, perceptionScanner = null) {
     if (!this.enabled || !car || !car.position) {
       this.setVisible(false);
+      return;
+    }
+    this.ribbonMesh.visible = true;
+
+    // Performance adaptation: 16 segments in LOW / i3 MODE, 32 segments in HIGH / AUTO
+    const isLowMode = this.perfGovernor?.profile === 'LOW';
+    const activeSegments = isLowMode ? 16 : this.maxSegments;
+    this.ribbonGeo.setDrawRange(0, activeSegments * 6);
+
+    // 1. Determine Ribbon Color State
+    const isAebOrEmergency = driverState.driveMode === 5 ||
+                             driverState.aebActive ||
+                             driverState.state === 'AEB_BRAKING';
+    const isRedStop = driverState.driveMode === 6 ||
+                      driverState.state === 'STOPPED' ||
+                      !!perceptionScanner?.activeRedStopObstacle;
+    const isLaneChanging = driverState.laneChangeActive ||
+                           (driverState.currentLaneIndex !== driverState.targetLaneIndex);
+    const isNudging = Math.abs(driverState.lateralNudge || 0) > 0.08;
+    const isYielding = !!driverState.isYielding;
+
+    let baseColor = this.COLOR_TESLA_BLUE;
+    if (isAebOrEmergency || isRedStop) {
+      baseColor = this.COLOR_RED;
+    } else if (isLaneChanging || isNudging || isYielding) {
+      baseColor = this.COLOR_AMBER;
+    }
+
+    // 2. Generate 3D Trajectory Ribbon Points
+    const halfWidth = 0.90; // 1.8m road path ribbon
+    const carY = (car.position.y || 0) + 0.04; // subtle elevation above asphalt to prevent z-fighting
