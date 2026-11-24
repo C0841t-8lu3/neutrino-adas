@@ -313,26 +313,80 @@ export class AutonomousDriver {
 
     // 2. Transmit Real-Time Telemetry to QNX RTOS Bridge (Zero-GC reuse packet)
     if (this.telemetryClient.isConnected()) {
-      const obsPayload = this.perceptionScanner.buildObstaclePayload(car, trafficList, 24);
+      const obsPayload = this.perceptionScanner.buildObstaclePayload(car, trafficList, 24, dt);
+      this.lastObstacleCount = obsPayload.length;
 
-      const telemetry = {
-        x: Math.round(car.position.x * 100) / 100,
-        y: Math.round(car.position.y * 100) / 100,
-        z: Math.round(car.position.z * 100) / 100,
-        speed: Math.round(car.speed * 100) / 100,
-        heading: Math.round(car.heading * 1000) / 1000,
-        steer_angle: Math.round((car.steerAngle || 0) * 1000) / 1000,
-        current_lane: this.currentLaneIndex,
-        target_lane: this.targetLaneIndex,
-        dt: Math.round(dt * 1000) / 1000,
-        obs: obsPayload
-      };
+      this.seq = (this.seq || 0) + 1;
+      const p = this._telemetryPacket;
+      p.seq = this.seq;
+      p.x = Math.round(car.position.x * 100) / 100;
+      p.y = Math.round(car.position.y * 100) / 100;
+      p.z = Math.round(car.position.z * 100) / 100;
+      p.speed = Math.round(car.speed * 100) / 100;
+      p.heading = Math.round(car.heading * 1000) / 1000;
+      p.steer_angle = Math.round((car.steerAngle || 0) * 1000) / 1000;
+      p.current_lane = this.currentLaneIndex;
+      p.target_lane = this.targetLaneIndex;
+      p.dt = Math.round(dt * 1000) / 1000;
+      p.drive_profile = this.driveProfile;
+      p.obs = obsPayload;
 
-      this.telemetryClient.send(telemetry);
+      // Integrate Point-to-Point Navigation Route if active
+      if (this.routePlanner && this.routePlanner.hasActiveRoute()) {
+        const ref = this.routePlanner.getTrackingReference(car.position, car.heading, car.speed);
+        p.has_route = 1;
+        p.ref_x = Math.round(ref.refX * 100) / 100;
+        p.ref_z = Math.round(ref.refZ * 100) / 100;
+        p.ref_heading = Math.round(ref.refHeading * 1000) / 1000;
+        p.path_curvature = Math.round(ref.curvature * 1000) / 1000;
+        p.next_curvature = Math.round((ref.nextCurvature || 0) * 1000) / 1000;
+        p.dist_to_goal = Math.round(ref.distToGoal * 10) / 10;
+        p.turn_signal_hint = ref.turnSignalHint;
+        p.in_intersection = ref.inIntersection ? 1 : 0;
+        p.dist_to_next_turn = Math.round(ref.nextTurnDistance * 10) / 10;
+        p.pre_turn_lane_hint = ref.preTurnLaneHint || 0;
+
+        if (ref.turnSignalHint < 0) this.leftBlinker = true;
+        else if (ref.turnSignalHint > 0) this.rightBlinker = true;
+
+        if (ref.isArrived && car.speed < 0.5) {
+          this.state = 'STOPPED';
+          this.statusMessage = 'QNX NAV: Arrived at Destination';
+        }
+      } else {
+        p.has_route = 0;
+        p.in_intersection = 0;
+        p.dist_to_next_turn = 999.0;
+        p.pre_turn_lane_hint = 0;
+        delete p.ref_x;
+        delete p.ref_z;
+        delete p.ref_heading;
+        delete p.path_curvature;
+        delete p.next_curvature;
+        delete p.dist_to_goal;
+        delete p.turn_signal_hint;
+      }
+
+      this.telemetryClient.send(p);
     }
 
-    // 3. Fallback Autonomous Controls if QNX link is offline
-    if (!this.qnxConnected) {
+    // 3. Fallback Autonomous Controls or Watchdog Safe Stop
+    if (this.enabled && this.qnxConnected) {
+      if (this.lastQnxPacketTime > 0 && (now - this.lastQnxPacketTime > 450)) {
+        this._watchdogTicks = (this._watchdogTicks || 0) + 1;
+        if (this._watchdogTicks >= 2) {
+          // Watchdog timeout exceeded (>450ms with 2 ticks): Engage Safe Fail-Stop
+          this.watchdogFault = true;
+          this.throttle = 0.0;
+          this.brake = 1.0;
+          this.hazardLights = true;
+          this.state = 'STOPPED';
+          this.statusMessage = 'QNX WATCHDOG FAULT — SAFE STOP';
+        }
+      } else {
+        this._watchdogTicks = 0;
+      }
+    } else if (!this.qnxConnected) {
       if ((this.ttc < 1.7 && this.leadDist < 30.0) || (this.leadDist < 6.5 && car.speed > 1.0)) {
         this.throttle = -1.0;
         this.brake = 1.0;
@@ -355,9 +409,19 @@ export class AutonomousDriver {
       }
     }
 
-    // 4. Actuate 3D Vehicle Controls
+    // 4. Actuate 3D Vehicle Controls via Physical Actuator Dynamics
+    const act = this.actuatorDynamics.step(
+      this.throttle,
+      this.brake,
+      this.steerInput,
+      dt
+    );
+    const effThrottle = act.throttle;
+    const effBrake = act.brake;
+    const effSteer = act.steer;
+
     if (this.enabled) {
-      if (this.brake > 0.05 && car.speed > 0.2) {
+      if (effBrake > 0.05 && car.speed > 0.2) {
         this.controllerManager.keys.forward = false;
         this.controllerManager.keys.backward = Math.min(1.0, this.brake);
       } else if (car.speed <= 0.2 && (this.brake > 0.05 || this.state === 'STOPPED')) {
