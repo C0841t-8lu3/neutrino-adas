@@ -20,7 +20,12 @@ public:
     explicit LongitudinalController(const AdasConfig& config = AdasConfig());
     ~LongitudinalController() = default;
 
-    LongitudinalOutput step(const VehicleState& ego, const ForwardScanResult& scan, float dt);
+    LongitudinalOutput step(
+        const VehicleState& ego,
+        const ForwardScanResult& scan,
+        float dt,
+        float speed_limit_override = 999.0f
+    );
 
     DriveMode getCurrentMode() const { return current_mode_; }
     void reset();
