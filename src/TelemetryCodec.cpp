@@ -67,6 +67,44 @@ bool TelemetryCodec::parseTelemetryJson(
     ego.steer_angle = parseNumber(str, "steer_angle");
     ego.current_lane = static_cast<int>(parseNumber(str, "current_lane"));
     ego.target_lane = static_cast<int>(parseNumber(str, "target_lane"));
+    ego.seq = static_cast<uint64_t>(parseNumber(str, "seq"));
+
+    // Optional FSD Driving Profile (defaults to STANDARD if omitted)
+    if (str.find("\"drive_profile\"") != std::string::npos) {
+        int prof = static_cast<int>(parseNumber(str, "drive_profile"));
+        if (prof == 0) ego.drive_profile = adas::DriveProfile::CHILL;
+        else if (prof == 2) ego.drive_profile = adas::DriveProfile::HURRY;
+        else ego.drive_profile = adas::DriveProfile::STANDARD;
+    } else {
+        ego.drive_profile = adas::DriveProfile::STANDARD;
+    }
+
+    // Optional Point-to-Point Navigation Route Fields
+    ego.has_route = parseNumber(str, "has_route") > 0.5f;
+    if (ego.has_route) {
+        ego.ref_x = parseNumber(str, "ref_x");
+        ego.ref_z = parseNumber(str, "ref_z");
+        ego.ref_heading = parseNumber(str, "ref_heading");
+        ego.path_curvature = parseNumber(str, "path_curvature");
+        ego.next_curvature = (str.find("\"next_curvature\"") != std::string::npos) ? parseNumber(str, "next_curvature") : 0.0f;
+        ego.dist_to_goal = parseNumber(str, "dist_to_goal");
+        ego.turn_signal_hint = static_cast<int>(parseNumber(str, "turn_signal_hint"));
+        ego.dist_to_next_turn = (str.find("\"dist_to_next_turn\"") != std::string::npos) ? parseNumber(str, "dist_to_next_turn") : 999.0f;
+        ego.pre_turn_lane_hint = static_cast<int>(parseNumber(str, "pre_turn_lane_hint"));
+        ego.in_intersection = (str.find("\"in_intersection\"") != std::string::npos) ? (parseNumber(str, "in_intersection") > 0.5f) : false;
+    } else {
+        ego.ref_x = 0.0f;
+        ego.ref_z = 0.0f;
+        ego.ref_heading = 0.0f;
+        ego.path_curvature = 0.0f;
+        ego.next_curvature = 0.0f;
+        ego.dist_to_goal = 99999.0f;
+        ego.turn_signal_hint = 0;
+        ego.dist_to_next_turn = 999.0f;
+        ego.pre_turn_lane_hint = 0;
+        ego.in_intersection = (str.find("\"in_intersection\"") != std::string::npos) ? (parseNumber(str, "in_intersection") > 0.5f) : false;
+    }
+
     float parsed_dt = parseNumber(str, "dt");
     if (parsed_dt > 0.001f && parsed_dt < 0.1f) dt = parsed_dt;
 
