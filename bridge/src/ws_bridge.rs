@@ -161,9 +161,16 @@ impl QnxWsBridge {
 
                         frame_count += 1;
                         if last_log.elapsed() >= Duration::from_secs(2) {
+                            let mut sorted = rtt_samples.clone();
+                            sorted.sort_unstable();
+                            let count = sorted.len();
+                            let p50 = if count > 0 { sorted[count * 50 / 100] } else { 0 };
+                            let p95 = if count > 0 { sorted[count * 95 / 100] } else { 0 };
+                            let p99 = if count > 0 { sorted[count * 99 / 100] } else { 0 };
+
                             println!(
-                                "[QNX RTOS ACTIVE] 60Hz Telemetry Link Healthy | RTT: {} us | Packets: {}",
-                                rtt_us, frame_count
+                                "[QNX RTOS ACTIVE] 60Hz Telemetry Link Healthy | RTT p50: {} µs | p95: {} µs | p99: {} µs | Packets: {}",
+                                p50, p95, p99, frame_count
                             );
                             last_log = Instant::now();
                         }
