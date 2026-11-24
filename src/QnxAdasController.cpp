@@ -134,11 +134,15 @@ AdasOutput QnxAdasController::step(const VehicleState& ego, const std::vector<Ob
     out.ack_seq = ego.seq;
     out.watchdog_ok = true;
 
-    // Preserve BSM alert status unless emergency/stop overrides it
+    // Status message priority arbitration
     if (!lat.bsm_status_message.empty() &&
         lon.mode != DriveMode::AEB_EMERGENCY &&
         lon.mode != DriveMode::STOPPED) {
         out.status_message = lat.bsm_status_message;
+    } else if (!plan.behavior_status.empty() &&
+               lon.mode != DriveMode::AEB_EMERGENCY &&
+               lon.mode != DriveMode::STOPPED) {
+        out.status_message = plan.behavior_status;
     } else {
         out.status_message = lon.status_message;
     }
