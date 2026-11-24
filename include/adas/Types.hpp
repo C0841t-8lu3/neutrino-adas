@@ -71,13 +71,14 @@ struct Obstacle {
     float width = 2.0f;
     float length = 4.5f;
     int id = 0;
-    int type = 0;                // 0: Car, 1: Truck, 2: Pedestrian
+    int type = 0;                // 0: Car, 1: Truck, 2: Pedestrian, 3: Stop Line
 };
 
 // Sensor scan results
 struct ForwardScanResult {
     float lead_distance = 999.0f;
     float lead_rel_speed = 0.0f;
+    float lead_lat = 0.0f;
     float time_to_collision = 999.0f;
     bool pedestrian_ahead = false;
 };
