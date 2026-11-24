@@ -11,6 +11,8 @@ ForwardScanResult ForwardRadar::scan(const VehicleState& ego, const std::vector<
     res.lead_lat = 0.0f;
     res.time_to_collision = 999.0f;
     res.pedestrian_ahead = false;
+    res.is_lead_stop_line = false;
+    res.lead_type = 0;
 
     float sinH = std::sin(ego.heading);
     float cosH = std::cos(ego.heading);
