@@ -119,16 +119,20 @@ AdasOutput QnxAdasController::step(const VehicleState& ego, const std::vector<Ob
         lane_change_dir
     );
 
-    // 7. Assemble final output
-    out.throttle = lon.throttle;
-    out.brake = lon.brake;
-    out.steer_cmd = lat.steer_cmd;
+    // 9. Assemble final output
+    out.throttle = final_throttle;
+    out.brake = final_brake;
+    out.steer_cmd = final_steer;
     out.left_turn_signal = sig.left_turn_signal;
     out.right_turn_signal = sig.right_turn_signal;
     out.hazard_lights = sig.hazard_lights;
     out.horn_active = sig.horn_active;
     out.brake_lights = sig.brake_lights;
     out.drive_mode = lon.mode;
+    out.drive_profile = ego.drive_profile;
+    out.lateral_nudge = plan.lateral_nudge;
+    out.ack_seq = ego.seq;
+    out.watchdog_ok = true;
 
     // Preserve BSM alert status unless emergency/stop overrides it
     if (!lat.bsm_status_message.empty() &&
