@@ -281,3 +281,34 @@ export class RoutePlanner {
       const isEndEdge = (k === edgePath.length - 1);
 
       const sStart = isStartEdge ? startSnap.s : 0.0;
+      const sEnd = isEndEdge ? goalSnap.s : edge.len;
+
+      // Real Driver's License Rule: Pre-turn lane discipline:
+      // Left turns from leftmost lane (index 0), Right turns from rightmost lane (index length-1)
+      let laneIdx = (edge.lanes && edge.lanes.length > 0)
+        ? Math.floor(edge.lanes.length / 2)
+        : 0;
+
+      if (nextMove) {
+        if (nextMove.turn === 'L') {
+          laneIdx = 0;
+        } else if (nextMove.turn === 'R') {
+          laneIdx = (edge.lanes && edge.lanes.length > 0) ? edge.lanes.length - 1 : 0;
+        }
+      } else if (move) {
+        if (move.turn === 'L') {
+          laneIdx = 0;
+        } else if (move.turn === 'R') {
+          laneIdx = (edge.lanes && edge.lanes.length > 0) ? edge.lanes.length - 1 : 0;
+        }
+      }
+
+      const laneOffset = (edge.lanes && edge.lanes.length > 0)
+        ? edge.lanes[laneIdx]
+        : 0;
+
+      // 1. Sample straight/curved street segment
+      const sampleStep = 2.5; // sample every 2.5 meters
+      const streetLen = Math.max(0, sEnd - sStart);
+      const steps = Math.max(1, Math.ceil(streetLen / sampleStep));
+
