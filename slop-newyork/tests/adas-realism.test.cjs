@@ -74,3 +74,42 @@ test('ActuatorDynamics models first-order lag, rate limits, and surface friction
   assert.equal(out1.brake, 0.0);
   assert.equal(out1.steer, 0.0);
 
+  // Step 2: Rate limited steering
+  const out2 = dynamics.step(0.0, 0.0, 1.0, 0.016);
+  const maxSteerStep = 0.85 * 0.016; // 0.0136 rad max
+  assert.ok(out2.steer <= maxSteerStep + 1e-5, 'Steering rate clamp holds');
+
+  // Step 3: Wet surface friction braking authority
+  dynamics.setSurface('wet');
+  assert.equal(dynamics.frictionMu, 0.55);
+  dynamics.actualBrake = 1.0;
+  const outWet = dynamics.step(0.0, 1.0, 0.0, 0.016);
+  const expectedWetBrake = 1.0 * (0.55 / 0.95);
+  assert.ok(Math.abs(outWet.brake - expectedWetBrake) < 0.05, 'Braking on wet surface is scaled by friction coefficient');
+
+  // Step 4: Bypass mode
+  dynamics.setEnabled(false);
+  const outBypass = dynamics.step(0.77, 0.33, -0.45, 0.016);
+  assert.equal(outBypass.throttle, 0.77);
+  assert.equal(outBypass.brake, 0.33);
+  assert.equal(outBypass.steer, -0.45);
+});
+
+test('TelemetryRecorder circular ring buffer records, wraps and computes scorecard', () => {
+  const { TelemetryRecorder } = loadModule(recorderSource);
+  const recorder = new TelemetryRecorder(10); // Small 10-slot buffer for test
+
+  for (let i = 0; i < 15; i++) {
+    recorder.record({
+      time: 1000 + i * 16,
+      seq: i,
+      x: i * 2,
+      y: 0,
+      z: 50 + i * 5,
+      speed: 12.0,
+      steerAngle: 0.01,
+      throttle: 0.6,
+      brake: i === 7 ? 0.95 : 0.0,
+      steerCmd: 0.0,
+      driveMode: 1,
+      leadDist: 30.0 - i,
