@@ -108,10 +108,11 @@ LongitudinalOutput LongitudinalController::step(
     // Adaptive Cruise Control (ACC) & Intersection Stop-Line Deceleration
     else if (scan.lead_distance < 85.0f && !ignore_stop_line) {
         current_mode_ = DriveMode::ACC_FOLLOWING;
-        float desired_gap = config_.min_safe_dist + (ego.speed * config_.time_headway);
+        float desired_gap = (scan.is_lead_stop_line)
+            ? 1.2f // Front bumper stops 1.2m behind painted stop line (0.8m-1.8m safe zone)
+            : (config_.min_safe_dist + (ego.speed * config_.time_headway));
 
-        // If lead obstacle is stationary (e.g. red light stop line), apply kinematic stopping curve
-        bool lead_is_stationary = (std::abs(scan.lead_rel_speed + ego.speed) < 0.5f);
+        bool lead_is_stationary = scan.is_lead_stop_line || (std::abs(scan.lead_rel_speed + ego.speed) < 0.5f);
         float target_accel = 0.0f;
 
         if (lead_is_stationary && ego.speed > 0.5f) {
