@@ -125,3 +125,46 @@ export class ScenarioInjector {
       }
 
       case 3: {
+        // Scenario 3: Lead Emergency Brake (Euro NCAP CCRb)
+        // Commands lead vehicle 18m ahead to slam on brakes at -6.0 m/s²
+        const actor = this.findOrBorrowVehicle();
+        if (actor) {
+          actor.x = px + 18.0 * sin + 0.0 * cos;
+          actor.z = pz + 18.0 * cos - 0.0 * sin;
+          actor.speed = egoSpeed;
+          actor.v = actor.speed;
+          actor.yaw = ego.heading;
+          actor.tx = sin;
+          actor.tz = cos;
+          actor.dl = 0.0;
+          actor.dlv = 0.0;
+          actor.panicAcc = -6.0;
+          actor.panicUntil = (typeof performance !== 'undefined' ? performance.now() : Date.now()) + 5000;
+          this._injectedActor = actor;
+        }
+        this.activeScenario = {
+          id: 3,
+          name: 'Lead Emergency Brake (CCRb)',
+          duration: 4.0,
+          startTime: (typeof performance !== 'undefined' ? performance.now() : Date.now())
+        };
+        this.lastStatus = 'Scenario 3: Lead CCRb Emergency Brake Active';
+        break;
+      }
+
+      case 4: {
+        // Scenario 4: Blind-Spot Ambush
+        // Positions car in left rear blind spot (-3.5m fwd, -3.2m lat), matching ego speed,
+        // and requests an ego lane change to verify QNX BSM interlock prevention
+        const actor = this.findOrBorrowVehicle();
+        if (actor) {
+          actor.x = px - 3.5 * sin - 3.2 * cos;
+          actor.z = pz - 3.5 * cos + 3.2 * sin;
+          actor.speed = egoSpeed * 1.02;
+          actor.v = actor.speed;
+          actor.yaw = ego.heading;
+          actor.tx = sin;
+          actor.tz = cos;
+          actor.dl = -3.2;
+          actor.dlv = 0.0;
+          this._injectedActor = actor;
