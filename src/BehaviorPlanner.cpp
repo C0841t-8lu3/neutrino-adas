@@ -230,3 +230,29 @@ BehaviorDecision BehaviorPlanner::plan(
 
         float v_corner = std::sqrt(a_lat / max_curv);
         decision.speed_limit_override = std::min(decision.speed_limit_override, v_corner);
+    }
+
+    // Intersection Creep & Yielding
+    // Intersection Box-Clearing Rule ("Never Stop Inside an Intersection"):
+    // Once inside an intersection, never stop for newly-red light—commit smoothly and clear.
+    if (ego.in_intersection) {
+        creep_timer_ = 0.0f;
+        decision.is_yielding = false;
+    } else if (fwd.is_lead_stop_line) {
+        creep_timer_ = 0.0f;
+    } else if (fwd.pedestrian_ahead && fwd.lead_distance < 22.0f) {
+        decision.is_yielding = true;
+        decision.speed_limit_override = std::min(decision.speed_limit_override, 1.5f);
+        decision.behavior_status = "QNX FSD: Yielding to Pedestrian at Intersection";
+    } else if (creep_timer_ < 1.8f && ego.speed < 4.0f && !fwd.is_lead_stop_line && fwd.lead_distance > 15.0f && ego.speed > 0.1f) {
+        creep_timer_ += dt;
+        decision.creep_active = true;
+        float creep_speed = 3.0f + (creep_timer_ / 1.8f) * (config_.target_speed_mps - 3.0f);
+        decision.speed_limit_override = std::min(decision.speed_limit_override, creep_speed);
+    }
+
+    decision.target_lane = desired_lane_;
+    return decision;
+}
+
+} // namespace adas
