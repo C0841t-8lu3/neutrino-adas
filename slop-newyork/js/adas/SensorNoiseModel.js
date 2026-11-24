@@ -189,3 +189,42 @@ export class SensorNoiseModel {
         orig: c.orig,
         x: Math.round(noisyWorldX * 100) / 100,
         z: Math.round(noisyWorldZ * 100) / 100,
+        speed: Math.round(noisySpeed * 100) / 100,
+        type: c.orig.type,
+        id: c.orig.id,
+        range: c.range
+      });
+    }
+    this.lastDroppedCount = droppedCount;
+
+    // 4. Sensor-Side Alpha-Beta State Tracking
+    this._processedObstacles.length = 0;
+    if (!this.trackerEnabled) {
+      // Return raw noisy detections
+      for (let i = 0; i < measuredList.length; i++) {
+        const m = measuredList[i];
+        this._processedObstacles.push({
+          x: m.x,
+          z: m.z,
+          speed: m.speed,
+          type: m.type,
+          id: m.id || i
+        });
+      }
+      this.lastFilteredCount = this._processedObstacles.length;
+      return this._processedObstacles;
+    }
+
+    // Alpha-Beta Tracker: Predict, Associate, and Filter
+    const alpha = 0.65;
+    const beta = 0.25;
+    const safeDt = Math.max(0.001, Math.min(0.1, dt));
+    const matchedTrackIds = new Set();
+
+    // Association: Match measurements to existing tracks by nearest distance (< 4.5m)
+    for (let i = 0; i < measuredList.length; i++) {
+      const m = measuredList[i];
+      let bestTrackId = null;
+      let bestDistSq = 20.25; // 4.5^2
+
+      for (const [trackId, tr] of this._tracks.entries()) {
