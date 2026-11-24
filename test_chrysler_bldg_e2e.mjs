@@ -158,3 +158,34 @@ async function runChryslerBuildingE2ETest() {
 
   // 5. VERIFY PRIORITY 2: Eliminate Phantom Sudden Stops
   console.log('\n[5/5] Executing Phantom Brake Elimination & Perception Filter Verifications...');
+
+  // 5a. Parked curb car (|lat| = 2.8m)
+  {
+    const wp = waypoints[10];
+    const sin = Math.sin(wp.heading);
+    const cos = Math.cos(wp.heading);
+    const parkedCarX = wp.x + cos * 2.8 + sin * 15.0;
+    const parkedCarZ = wp.z - sin * 2.8 + cos * 15.0;
+
+    const res = await sendTelemetry({
+      x: wp.x, y: 0.0, z: wp.z,
+      speed: 10.0, heading: wp.heading, steer_angle: 0.0,
+      current_lane: 1, target_lane: 1, dt: 0.016,
+      obs: [{ x: parkedCarX, z: parkedCarZ, speed: 0.0, type: 0 }],
+      has_route: 1, ref_x: wp.x, ref_z: wp.z, ref_heading: wp.heading,
+      path_curvature: 0.0, dist_to_goal: 400.0, turn_signal_hint: 0,
+      in_intersection: 0, dist_to_next_turn: 120.0, pre_turn_lane_hint: 0
+    });
+    assert.equal(res.drive_mode, 1, 'Must remain in CRUISING mode past parked curb cars');
+    assert.equal(res.brake, 0.0, 'Zero phantom braking for parked curb cars');
+    console.log('  [PASS] Parked curb car filtered out cleanly (zero phantom braking).');
+  }
+
+  // 5b. Sidewalk pedestrian walking normally (|lat| = 2.2m)
+  {
+    const wp = waypoints[12];
+    const sin = Math.sin(wp.heading);
+    const cos = Math.cos(wp.heading);
+    const pedX = wp.x + cos * 2.2 + sin * 12.0;
+    const pedZ = wp.z - sin * 2.2 + cos * 12.0;
+
