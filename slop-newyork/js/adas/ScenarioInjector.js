@@ -295,3 +295,45 @@ export class ScenarioInjector {
       if (this.trafficSystem.cars) {
         const cars = this.trafficSystem.cars;
         const count = Math.min(cars.length, 30);
+        for (let i = 0; i < count; i++) {
+          const c = cars[i];
+          if (!c || c === this._injectedActor) continue;
+          const dx = c.x - px;
+          const dz = c.z - pz;
+          if (dx * dx + dz * dz < 3600) { // within 60m
+            // Random small speed variance (±0.4 m/s)
+            c.speed = Math.max(2.0, c.speed + (Math.random() - 0.5) * 0.4 * dt * 60);
+            if (c.v !== undefined) c.v = c.speed;
+
+            // Occasional minor lane swerve
+            if (Math.random() < 0.01) {
+              c.dl = (Math.random() - 0.5) * 0.6;
+            }
+          }
+        }
+      }
+
+      // Unpredictable Pedestrians
+      if (this.trafficSystem.peds) {
+        const peds = this.trafficSystem.peds;
+        const count = Math.min(peds.length, 25);
+        for (let i = 0; i < count; i++) {
+          const p = peds[i];
+          if (!p || p === this._injectedActor || !p.placed) continue;
+          const dx = p.x - px;
+          const dz = p.z - pz;
+          if (dx * dx + dz * dz < 1600) { // within 40m
+            // Hesitation probability
+            if (Math.random() < 0.005) {
+              p.v = Math.random() < 0.5 ? 0.0 : p.speed;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  createScenarioPanel() {
+    if (typeof document === 'undefined' || typeof document.createElement !== 'function' || !document.body) return;
+
+    const panel = document.createElement('div');
