@@ -156,3 +156,35 @@ export class FsdVisualizer {
     // 2. Generate 3D Trajectory Ribbon Points
     const halfWidth = 0.90; // 1.8m road path ribbon
     const carY = (car.position.y || 0) + 0.04; // subtle elevation above asphalt to prevent z-fighting
+    const px = car.position.x;
+    const pz = car.position.z;
+    const yaw = car.heading || 0;
+
+    let hasRoutePath = false;
+
+    if (routePlanner && routePlanner.hasActiveRoute() && routePlanner.activeRoute) {
+      const route = routePlanner.activeRoute;
+      const cIdx = routePlanner.currentIndex || 0;
+      const len = route.length;
+      if (len > cIdx) {
+        hasRoutePath = true;
+        const stepSkip = Math.max(1, Math.floor(len / (activeSegments * 2)));
+        let posIdx = 0;
+        let colorIdx = 0;
+
+        for (let i = 0; i <= activeSegments; i++) {
+          const wIdx = Math.min(len - 1, cIdx + i * stepSkip);
+          const wp = route[wIdx];
+          const wx = wp.x;
+          const wz = wp.z;
+          const wHeading = wp.heading || yaw;
+
+          // Normal vector perpendicular to heading (right side)
+          const nx = Math.cos(wHeading);
+          const nz = -Math.sin(wHeading);
+
+          // Alpha fade factor along horizon
+          const t = i / activeSegments;
+          const alphaFade = Math.max(0.18, 1.0 - t * 0.75);
+
+          // Left vertex
