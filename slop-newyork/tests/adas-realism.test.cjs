@@ -266,3 +266,41 @@ test('AutonomousDriver engages Safe Fail-Stop on 150ms Watchdog timeout and reco
     steerAngle: 0,
     carState: { value: { x: 0, y: 0, z: 0 } }
   };
+  const mockController = {
+    activeMode: 'car',
+    entities: { car: mockCar },
+    keys: { forward: false, backward: false, left: false, right: false }
+  };
+
+  const driver = new AutonomousDriver(mockController, {});
+  driver.qnxConnected = true;
+  driver.enabled = true;
+
+  const now = performance.now();
+  driver.lastQnxPacketTime = now - 50;
+  driver.update(0.016);
+  assert.equal(driver.watchdogFault, false);
+
+  // Still within 450ms threshold (e.g. 250ms) - no fault
+  driver.lastQnxPacketTime = now - 250;
+  driver.update(0.016);
+  assert.equal(driver.watchdogFault, false);
+
+  // Exceed 450ms timeout threshold, first tick is grace tick
+  driver.lastQnxPacketTime = now - 480;
+  driver.update(0.016);
+  assert.equal(driver.watchdogFault, false, 'Grace tick 1 prevents immediate false trip on i3 frame spike');
+
+  // Second tick beyond 450ms confirms timeout and engages safe stop
+  driver.update(0.016);
+  assert.equal(driver.watchdogFault, true);
+  assert.equal(driver.throttle, 0.0);
+  assert.equal(driver.brake, 1.0);
+  assert.equal(driver.hazardLights, true);
+  assert.equal(driver.state, 'STOPPED');
+  assert.equal(driver.statusMessage, 'QNX WATCHDOG FAULT — SAFE STOP');
+
+  // Recovery upon packet arrival
+  driver.applyQnxResponse({ throttle: 0.5, brake: 0.0, ack_seq: 1, watchdog_ok: true });
+  assert.equal(driver.watchdogFault, false);
+});
