@@ -1355,7 +1355,9 @@ class NYCMapSystem {
     const toY = (wz) => v.toY(wz);
 
     // GPS route to the active waypoint
-    if (this.waypoint) {
+    if (this.routePlanner && this.routePlanner.activeRoute && this.routePlanner.activeRoute.length > 1) {
+      drawPolylineRoute(ctx, toX, toY, this.routePlanner.activeRoute, this.routePlanner.currentIndex, 3.5);
+    } else if (this.waypoint) {
       const wx = toX(this.waypoint.x);
       const wy = toY(this.waypoint.z);
       drawRoute(ctx, 0, 0, wx, wy, 3);
@@ -1445,7 +1447,9 @@ class NYCMapSystem {
     const toY = (wz) => v.toY(wz);
 
     // GPS route on the full map
-    if (this.waypoint) {
+    if (this.routePlanner && this.routePlanner.activeRoute && this.routePlanner.activeRoute.length > 1) {
+      drawPolylineRoute(ctx, toX, toY, this.routePlanner.activeRoute, this.routePlanner.currentIndex, 5.0);
+    } else if (this.waypoint) {
       const wx = toX(this.waypoint.x);
       const wy = toY(this.waypoint.z);
       drawRoute(ctx, toX(ent.position.x), toY(ent.position.z), wx, wy, 4);
