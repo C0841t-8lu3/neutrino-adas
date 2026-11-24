@@ -56,3 +56,31 @@ async function runEndToEndTest() {
     }
   }
   console.log(`  Turn Curvature Check:  Max Curvature = ${maxCurv.toFixed(4)} rad/m (Turns detected: ${turnDetected})`);
+
+  // 3. Connect to Rust WebSocket Bridge (relaying to QNX 8.0 RTOS on VM)
+  console.log('\n[3/4] Connecting to QNX Bridge at ws://127.0.0.1:8089/ ...');
+  const ws = new WsClient('ws://127.0.0.1:8089/');
+  await new Promise((resolve, reject) => {
+    ws.onopen = resolve;
+    ws.onerror = reject;
+  });
+  console.log('[QNX Bridge] Connected via WebSocket.');
+
+  // 4. Simulate Closed-Loop Autonomous Driving along Route Waypoints
+  console.log('\n[4/4] Simulating Autonomous Driving along Planned A* Route...');
+
+  let ego = {
+    x: waypoints[0].x,
+    y: 0.0,
+    z: waypoints[0].z,
+    speed: 10.0, // m/s
+    heading: waypoints[0].heading,
+    steer_angle: 0.0
+  };
+
+  let arrived = false;
+  let rttSamples = [];
+  let steps = 0;
+  let currStepIdx = 0;
+  const maxSteps = 200;
+
