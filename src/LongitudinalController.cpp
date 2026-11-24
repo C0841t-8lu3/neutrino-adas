@@ -1,8 +1,7 @@
 #include "adas/LongitudinalController.hpp"
 #include <cmath>
 #include <algorithm>
-#include <sstream>
-#include <iomanip>
+#include <cstdio>
 
 namespace adas {
 
@@ -11,6 +10,7 @@ LongitudinalController::LongitudinalController(const AdasConfig& config)
 
 void LongitudinalController::reset() {
     current_mode_ = DriveMode::CRUISING;
+    aeb_confirm_count_ = 0;
 }
 
 LongitudinalOutput LongitudinalController::step(const VehicleState& ego, const ForwardScanResult& scan, float dt) {
