@@ -32,3 +32,37 @@ export class PerformanceGovernor {
 
     this.cullScale = this.profile === 'LOW' ? 0.62 : 1.0; // 0.60 to 1.0
     this.mirrorSkipInterval = this.profile === 'LOW' ? 4 : 2; // 2 = 30 Hz staggered, 4 = 15 Hz staggered
+
+    // Telemetry stats
+    this.fps = 60;
+    this.drawCalls = 0;
+    this.qnxRttUs = 0;
+    this.activeObstacles = 0;
+    this.triangles = 0;
+
+    // DOM Telemetry Pill
+    this.pillElement = null;
+    this.visible = true;
+    this.compactMode = false;
+    this.lastPillUpdate = 0;
+    this._lastText = '';
+
+    if (typeof document !== 'undefined') {
+      this.createTelemetryPill();
+      this.bindKeys();
+    }
+  }
+
+  setProfile(profile) {
+    if (profile !== 'AUTO' && profile !== 'LOW' && profile !== 'HIGH') return;
+    this.profile = profile;
+
+    if (this.profile === 'LOW') {
+      this.minDpr = 0.60;
+      this.maxDpr = 0.75;
+      this.currentDpr = 0.75;
+      this.cullScale = 0.62;
+      this.mirrorSkipInterval = 4;
+    } else if (this.profile === 'HIGH') {
+      this.minDpr = 0.85;
+      this.maxDpr = 1.0;
