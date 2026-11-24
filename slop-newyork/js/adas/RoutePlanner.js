@@ -406,3 +406,35 @@ export class RoutePlanner {
   getTrackingReference(egoPos, egoHeading, egoSpeed = 0) {
     if (!this.hasActiveRoute()) {
       this._trackingRef.hasRoute = false;
+      return this._trackingRef;
+    }
+
+    const route = this.activeRoute;
+    const len = route.length;
+    const ex = egoPos.x;
+    const ez = egoPos.z;
+
+    // 1. Find closest waypoint ahead of current search index
+    let closestIdx = this.currentIndex;
+    let closestDistSq = Infinity;
+    const searchRange = Math.min(len, this.currentIndex + 40);
+
+    for (let i = Math.max(0, this.currentIndex - 5); i < searchRange; i++) {
+      const wp = route[i];
+      const dx = ex - wp.x;
+      const dz = ez - wp.z;
+      const dSq = dx * dx + dz * dz;
+      if (dSq < closestDistSq) {
+        closestDistSq = dSq;
+        closestIdx = i;
+      }
+    }
+
+    // If local window didn't find a close waypoint (< 20m), search full route (handles teleports/skips)
+    if (closestDistSq > 400) {
+      for (let i = 0; i < len; i++) {
+        const wp = route[i];
+        const dx = ex - wp.x;
+        const dz = ez - wp.z;
+        const dSq = dx * dx + dz * dz;
+        if (dSq < closestDistSq) {
