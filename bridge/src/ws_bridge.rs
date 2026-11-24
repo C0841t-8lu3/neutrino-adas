@@ -132,7 +132,7 @@ impl QnxWsBridge {
                 let _ = qnx_writer.flush();
 
                 // Receive real-time actuator command from QNX RTOS
-                let mut qnx_response = String::new();
+                qnx_response.clear();
                 match qnx_reader.read_line(&mut qnx_response) {
                     Ok(0) => {
                         eprintln!("[QnxWsBridge] QNX Server closed connection.");
