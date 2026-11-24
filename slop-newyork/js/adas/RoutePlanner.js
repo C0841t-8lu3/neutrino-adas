@@ -532,3 +532,34 @@ export class RoutePlanner {
           if (maxDYaw > 0.28) {
             turnHint = 'RIGHT';
             rawTurnDir = +1;
+          } else if (maxDYaw < -0.28) {
+            turnHint = 'LEFT';
+            rawTurnDir = -1;
+          }
+
+          // Real Driver's License Rule: Pre-turn lane positioning hint (50m-95m ahead)
+          // Left turns require leftmost lane (-1); Right turns require rightmost lane (+1)
+          if (rawTurnDir !== 0 && nextTurnDist >= 50.0 && nextTurnDist <= 95.0) {
+            preTurnLaneHint = rawTurnDir;
+          }
+
+          // Real Driver's License Rule: Standard Turn Blinker Rule (30m-45m before turn)
+          // Only activate left/right turn signal when dist_to_next_turn is between 45m and 0m ahead
+          if (rawTurnDir !== 0 && nextTurnDist <= 45.0 && nextTurnDist >= 0.0) {
+            turnSignalHint = rawTurnDir;
+          }
+
+          break;
+        }
+        scanIdx++;
+      }
+    }
+
+    // Maintain turn signal while traversing through an intersection curve
+    if (inIntersection) {
+      let dYaw = targetWp.heading - egoHeading;
+      while (dYaw > Math.PI) dYaw -= 2 * Math.PI;
+      while (dYaw < -Math.PI) dYaw += 2 * Math.PI;
+      if (Math.abs(dYaw) > 0.08) {
+        turnSignalHint = (dYaw > 0) ? +1 : -1;
+      }
