@@ -121,3 +121,44 @@ async function runFsdBehaviorVerification() {
     // Lead vehicle at 20m ahead (z = 120.0), moving at 8.0 m/s:
     // Lead distance = 20.0 - 2.25 - 2.2 = 15.55m
     // - CHILL headway (1.8s): desired gap = 2.0 + 8.0*1.8 = 16.4m -> relaxed conservative follow
+    // - HURRY headway (1.0s): desired gap = 2.0 + 8.0*1.0 = 10.0m -> assertive, tighter following
+    const chillPkt = {
+      ...baseTelemetry,
+      speed: 8.0,
+      drive_profile: 0, // CHILL
+      obs: [{ x: 0.0, z: 120.0, speed: 8.0, type: 0 }]
+    };
+    const hurryPkt = {
+      ...baseTelemetry,
+      speed: 8.0,
+      drive_profile: 2, // HURRY
+      obs: [{ x: 0.0, z: 120.0, speed: 8.0, type: 0 }]
+    };
+
+    let chillResp = null;
+    for (let i = 0; i < 25; i++) {
+      chillResp = await sendPacket(ws, chillPkt);
+    }
+
+    let hurryResp = null;
+    for (let i = 0; i < 25; i++) {
+      hurryResp = await sendPacket(ws, hurryPkt);
+    }
+
+    console.log(`  CHILL (Profile 0, 1.8s headway) -> Throttle: ${chillResp.throttle.toFixed(3)} | Brake: ${chillResp.brake.toFixed(3)} | Mode: ${chillResp.drive_mode}`);
+    console.log(`  HURRY (Profile 2, 1.0s headway) -> Throttle: ${hurryResp.throttle.toFixed(3)} | Brake: ${hurryResp.brake.toFixed(3)} | Mode: ${hurryResp.drive_mode}`);
+
+    assert.equal(chillResp.drive_mode, 2, 'CHILL mode should be ACC_FOLLOWING (2)');
+    assert.equal(hurryResp.drive_mode, 2, 'HURRY mode should be ACC_FOLLOWING (2)');
+    
+    // At 20m gap: HURRY throttle is significantly higher (> 5x) than CHILL throttle
+    assert.ok(hurryResp.throttle > chillResp.throttle * 5.0, `HURRY throttle (${hurryResp.throttle}) should be significantly more assertive than CHILL (${chillResp.throttle})`);
+    console.log('  [PASS] Profiles produce distinct assertive vs conservative headway dynamics.');
+  }
+
+  // --------------------------------------------------------------------------
+  // TEST 4: BehaviorPlanner Route-Aware Pre-Turn Lane Positioning
+  // --------------------------------------------------------------------------
+  console.log('\n[TEST 4] Verifying BehaviorPlanner Pre-Turn Lane Positioning (< 90m)...');
+  {
+    // Clear obstacles
