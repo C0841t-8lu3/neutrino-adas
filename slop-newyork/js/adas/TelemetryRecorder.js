@@ -206,3 +206,38 @@ export class TelemetryRecorder {
       ].join(','));
     }
 
+    const csvStr = rows.join('\n');
+    this._triggerDownload(csvStr, `adas_flight_recorder_${Date.now()}.csv`, 'text/csv');
+    return csvStr;
+  }
+
+  _triggerDownload(content, filename, mimeType) {
+    if (typeof document === 'undefined' || typeof document.createElement !== 'function' || !document.body) {
+      return;
+    }
+    try {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // In headless environments, silently bypass DOM download
+    }
+  }
+
+  clear() {
+    this.head = 0;
+    this.count = 0;
+    this.totalAebEvents = 0;
+    this.totalBsmAborts = 0;
+    this.totalCollisions = 0;
+    this.minTtcObserved = 999;
+    this.maxBrakeObserved = 0;
+    this._lastAebState = false;
+  }
+}
