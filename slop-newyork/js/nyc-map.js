@@ -1211,11 +1211,70 @@ class NYCMapSystem {
   }
 
   update() {
+    this.updateRouteBar();
     // The full map covers the whole screen, radar included
     if (this.isFullMapOpen) {
       this.renderFullMap();
     } else {
       this.renderMinimap();
+    }
+  }
+
+  updateRouteBar() {
+    if (!this.elRouteBar) return;
+    if (!this.routePlanner || !this.routePlanner.hasActiveRoute()) {
+      if (this.elRouteBar.style.display !== 'none') {
+        this.elRouteBar.style.display = 'none';
+      }
+      return;
+    }
+
+    if (this.elRouteBar.style.display !== 'flex') {
+      this.elRouteBar.style.display = 'flex';
+    }
+
+    const ref = this.routePlanner._trackingRef;
+    const elOrigin = document.getElementById('rcb-origin');
+    const elDest = document.getElementById('rcb-dest');
+    const elDist = document.getElementById('rcb-dist');
+    const elEta = document.getElementById('rcb-eta');
+    const elTurn = document.getElementById('rcb-turn');
+
+    if (elOrigin) elOrigin.textContent = this.routePlanner.originName || 'Current Location';
+    if (elDest) elDest.textContent = this.routePlanner.destinationName || 'Destination';
+
+    if (elDist) {
+      elDist.textContent = ref.distToGoal >= 1000
+        ? `${(ref.distToGoal / 1000).toFixed(1)} km`
+        : `${Math.round(ref.distToGoal)} m`;
+    }
+
+    if (elEta) {
+      const ent = this.controllerManager?.getActiveEntity();
+      const speed = Math.max(6.0, Math.abs(ent?.speed || 0));
+      const totalSec = Math.round(ref.distToGoal / speed);
+      const min = Math.floor(totalSec / 60);
+      const sec = totalSec % 60;
+      elEta.textContent = min > 0 ? `ETA ${min}m ${sec}s` : `ETA ${sec}s`;
+    }
+
+    if (elTurn) {
+      if (ref.isArrived) {
+        elTurn.textContent = '🏁 Arrived at Destination';
+        elTurn.style.color = '#10b981';
+      } else if (ref.turnHint === 'ARRIVING') {
+        elTurn.textContent = `🚩 Arriving in ${Math.round(ref.distToGoal)}m`;
+        elTurn.style.color = '#38bdf8';
+      } else if (ref.turnHint === 'LEFT') {
+        elTurn.textContent = `↰ Turn Left in ${ref.nextTurnDistance}m`;
+        elTurn.style.color = '#f59e0b';
+      } else if (ref.turnHint === 'RIGHT') {
+        elTurn.textContent = `↱ Turn Right in ${ref.nextTurnDistance}m`;
+        elTurn.style.color = '#f59e0b';
+      } else {
+        elTurn.textContent = '⬆ Continue Straight';
+        elTurn.style.color = '#10b981';
+      }
     }
   }
 
