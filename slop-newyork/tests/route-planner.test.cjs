@@ -153,3 +153,34 @@ test('RoutePlanner detects off-route deviation and clears route', () => {
   assert.ok(planner.hasActiveRoute());
 
   // Deviate by 40 meters off route (X = 40, route is at X = 0)
+  const deviatedPos = { x: 40, y: 0, z: 30 };
+  assert.ok(planner.isOffRoute(deviatedPos, 18.0));
+
+  planner.clearRoute();
+  assert.equal(planner.hasActiveRoute(), false);
+  assert.equal(planner.activeRoute, null);
+});
+
+test('PerformanceGovernor adapts frame budget, DPR and cull scale', () => {
+  const { PerformanceGovernor } = loadModule(governorSource, {});
+  const mockRenderer = {
+    setPixelRatio: () => {}
+  };
+
+  const governor = new PerformanceGovernor(mockRenderer);
+
+  // Normal smooth frames (14 ms -> ~71 FPS)
+  for (let i = 0; i < 60; i++) {
+    governor.update(14.0, { drawCalls: 120 });
+  }
+  assert.ok(governor.fps >= 60);
+  assert.equal(governor.currentDpr, 1.0);
+
+  // Heavy frame spike simulation (25 ms -> 40 FPS)
+  for (let i = 0; i < 30; i++) {
+    governor.update(25.0, { drawCalls: 450 });
+  }
+  assert.ok(governor.emaFrameMs > 16.66);
+  assert.ok(governor.currentDpr < 1.0, 'DPR should step down under frame pressure');
+  assert.ok(governor.cullScale < 1.0, 'Cull scale should tighten under frame pressure');
+});
