@@ -124,9 +124,11 @@ bool TelemetryCodec::parseTelemetryJson(
                 o.x = parseNumber(item, "x");
                 o.z = parseNumber(item, "z");
                 o.speed = parseNumber(item, "speed");
+                o.vx = parseNumber(item, "vx");
+                o.vz = parseNumber(item, "vz");
                 o.type = static_cast<int>(parseNumber(item, "type"));
-                o.length = (o.type == 1) ? 7.0f : 4.5f;
-                o.width = (o.type == 1) ? 2.4f : 2.0f;
+                o.length = (o.type == 1) ? 7.0f : (o.type == 3 ? 1.0f : 4.5f);
+                o.width = (o.type == 1) ? 2.4f : (o.type == 3 ? 3.6f : 2.0f);
                 obstacles.push_back(o);
                 cur = obj_end + 1;
             }
