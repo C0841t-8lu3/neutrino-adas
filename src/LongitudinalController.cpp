@@ -13,12 +13,58 @@ void LongitudinalController::reset() {
     aeb_confirm_count_ = 0;
 }
 
-LongitudinalOutput LongitudinalController::step(const VehicleState& ego, const ForwardScanResult& scan, float dt) {
-    (void)dt; // dt unused in instantaneous kinematic state evaluation
+LongitudinalOutput LongitudinalController::step(
+    const VehicleState& ego,
+    const ForwardScanResult& scan,
+    float dt,
+    float speed_limit_override
+) {
+    (void)dt;
     LongitudinalOutput out;
 
-    // Automatic Emergency Braking (AEB)
-    if ((scan.time_to_collision < 1.7f && scan.lead_distance < 32.0f) ||
+    // Check Point-to-Point Destination Arrival
+    if (ego.has_route && ego.dist_to_goal <= 3.0f && ego.speed < 0.6f) {
+        current_mode_ = DriveMode::STOPPED;
+        out.throttle = 0.0f;
+        out.brake = 0.8f;
+        out.status_message = "QNX NAV: Arrived at Destination";
+        out.mode = current_mode_;
+        return out;
+    }
+
+    // Determine target speed with behavior planner limit, path curvature, next lookahead curvature, and destination approach
+    float effective_target_speed = config_.target_speed_mps;
+    if (speed_limit_override < effective_target_speed) {
+        effective_target_speed = speed_limit_override;
+    }
+
+    if (ego.has_route) {
+        float a_lat = (config_.profile == DriveProfile::HURRY) ? 2.8f : ((config_.profile == DriveProfile::CHILL) ? 1.8f : 2.4f);
+
+        // Current waypoint curvature
+        if (std::abs(ego.path_curvature) > 0.005f) {
+            float v_turn = std::sqrt(a_lat / std::abs(ego.path_curvature));
+            effective_target_speed = std::min(effective_target_speed, v_turn);
+        }
+        // Upcoming lookahead curvature (predictive cornering before entry)
+        if (std::abs(ego.next_curvature) > 0.005f) {
+            float v_next = std::sqrt(a_lat / std::abs(ego.next_curvature));
+            effective_target_speed = std::min(effective_target_speed, v_next);
+        }
+        // Smooth kinematic deceleration towards destination
+        if (ego.dist_to_goal < 40.0f) {
+            float v_goal = std::sqrt(2.0f * config_.max_service_brake * std::max(0.1f, ego.dist_to_goal - 2.5f));
+            effective_target_speed = std::min(effective_target_speed, v_goal);
+        }
+    }
+
+    // Intersection Box-Clearing Rule ("Never Stop Inside an Intersection"):
+    // Once inside an intersection, never stop for newly-red light or virtual stop line.
+    bool ignore_stop_line = (ego.in_intersection && scan.is_lead_stop_line);
+
+    // Automatic Emergency Braking (AEB) with Multi-Frame Confirmation & Diagnostic Cause
+    bool aeb_candidate = (!scan.is_lead_stop_line) && (
+        (scan.time_to_collision < 1.7f && scan.lead_distance < 32.0f) ||
         (scan.lead_distance < 6.5f && ego.speed > 1.0f) ||
         (scan.pedestrian_ahead && scan.lead_distance < 18.0f)) {
 
