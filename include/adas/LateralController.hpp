@@ -25,7 +25,9 @@ public:
         const VehicleState& ego,
         const ForwardScanResult& fwd_scan,
         const BlindSpotResult& bsm_scan,
-        float dt
+        float dt,
+        int planned_target_lane = -1,
+        float lateral_nudge = 0.0f
     );
 
     void reset();
