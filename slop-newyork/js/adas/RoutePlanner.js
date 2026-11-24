@@ -249,3 +249,35 @@ export class RoutePlanner {
 
     // Build dense sampled waypoints
     const waypoints = this._buildWaypointsFromEdgePath(edgePath, startSnap, goalSnap);
+
+    if (waypoints.length > 0) {
+      this.activeRoute = waypoints;
+      this.currentIndex = 0;
+      this.startPos = { x: startPos.x, z: startPos.z };
+      this.goalPos = { x: goalPos.x, z: goalPos.z };
+      this.originName = getLocationLabel(startPos.x, startPos.z);
+      this.destinationName = getLocationLabel(goalPos.x, goalPos.z);
+      this.totalDistance = waypoints[waypoints.length - 1].distFromStart;
+      this._trackingRef.isArrived = false;
+      this._trackingRef.hasRoute = true;
+      this._trackingRef.totalDistance = this.totalDistance;
+
+      console.log(`[RoutePlanner] Planned A* Route: ${edgePath.length} street segments, ${waypoints.length} waypoints, ${(this.totalDistance).toFixed(0)}m (${this.originName} → ${this.destinationName})`);
+    }
+
+    return waypoints;
+  }
+
+  _buildWaypointsFromEdgePath(edgePath, startSnap, goalSnap) {
+    const waypoints = [];
+    let cumDist = 0;
+    const connector = this.roadNetwork.connector;
+    const curvePoint = this.roadNetwork.curvePoint;
+
+    for (let k = 0; k < edgePath.length; k++) {
+      const { edge, move } = edgePath[k];
+      const nextMove = (k < edgePath.length - 1) ? edgePath[k + 1].move : null;
+      const isStartEdge = (k === 0);
+      const isEndEdge = (k === edgePath.length - 1);
+
+      const sStart = isStartEdge ? startSnap.s : 0.0;
