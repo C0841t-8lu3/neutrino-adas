@@ -23,7 +23,9 @@ public:
         bool horn_req,
         bool lane_change_active,
         float lateral_error,
-        float brake
+        float brake,
+        int turn_signal_hint = 0,
+        int lane_change_direction = 0
     );
 
     void reset();
