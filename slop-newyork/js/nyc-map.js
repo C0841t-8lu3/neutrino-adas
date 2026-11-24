@@ -423,10 +423,69 @@ function drawWaypoint(ctx, x, y, r) {
   ctx.fill();
 }
 
+// Real road-following A* polyline route with progressive trimming as car advances
+function drawPolylineRoute(ctx, toX, toY, waypoints, currentIdx = 0, width = 4) {
+  if (!waypoints || waypoints.length < 2) return;
+  ctx.save();
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  const startIdx = Math.max(0, Math.min(currentIdx, waypoints.length - 1));
+  ctx.beginPath();
+  ctx.moveTo(toX(waypoints[startIdx].x), toY(waypoints[startIdx].z));
+
+  for (let i = startIdx + 1; i < waypoints.length; i++) {
+    ctx.lineTo(toX(waypoints[i].x), toY(waypoints[i].z));
+  }
+
+  // Dark protective halo casing
+  ctx.strokeStyle = MAP.halo;
+  ctx.lineWidth = width + 3.5;
+  ctx.stroke();
+
+  // Glowing taxi-yellow route line
+  ctx.strokeStyle = MAP.route;
+  ctx.lineWidth = width;
+  ctx.stroke();
+
+  // Pulsing Point B destination pin
+  const lastWp = waypoints[waypoints.length - 1];
+  drawDestinationPin(ctx, toX(lastWp.x), toY(lastWp.z), width * 1.8);
+  ctx.restore();
+}
+
+function drawDestinationPin(ctx, x, y, r = 7) {
+  const pulse = (typeof performance !== 'undefined') ? ((performance.now() % 1600) / 1600) : 0;
+  // Pulsing outer ripple
+  ctx.fillStyle = `rgba(255, 194, 26, ${0.4 * (1 - pulse)})`;
+  ctx.beginPath();
+  ctx.arc(x, y, r + pulse * 18, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Outer dark halo
+  ctx.fillStyle = MAP.halo;
+  ctx.beginPath();
+  ctx.arc(x, y, r + 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Inner pin body
+  ctx.fillStyle = MAP.route;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Point B label
+  ctx.fillStyle = '#0f172a';
+  ctx.font = `bold ${Math.max(8, Math.round(r * 1.15))}px monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('B', x, y);
+}
+
 const overlaps = (boxes, b) => boxes.some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]);
 
 class NYCMapSystem {
-  constructor({ controllerManager, cameraSystem, allBlocks = [], onTeleport, onToggle }) {
+  constructor({ controllerManager, cameraSystem, allBlocks = [], onTeleport, onDriveTo, onToggle }) {
     this.controllerManager = controllerManager;
     this.cameraSystem = cameraSystem;
     this.allBlocks = allBlocks;
