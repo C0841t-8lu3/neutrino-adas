@@ -117,12 +117,26 @@ export class PerceptionScanner {
       for (let i = 0; i < count; i++) {
         const c = cars[i];
         if (Number.isFinite(c.x) && Number.isFinite(c.z)) {
-          traffic.push({ ...c, kind: 'Car', isBus: false });
+          const item = this._acquireTrafficItem(poolIdx++);
+          item.x = c.x;
+          item.z = c.z;
+          item.v = c.v || 0;
+          item.half = c.half || 2.0;
+          item.kind = 'Car';
+          item.isBus = false;
+          item.isPedestrian = false;
+          item.vx = 0;
+          item.vz = 0;
+          this._trafficList.push(item);
         }
       }
     }
+
     if (this.trafficSystem?.buses) {
-      for (const b of this.trafficSystem.buses) {
+      const buses = this.trafficSystem.buses;
+      const count = buses.length;
+      for (let i = 0; i < count; i++) {
+        const b = buses[i];
         if (Number.isFinite(b.x) && Number.isFinite(b.z)) {
           traffic.push({ ...b, kind: 'Bus', isBus: true });
         }
