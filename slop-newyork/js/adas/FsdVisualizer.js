@@ -61,3 +61,35 @@ export class FsdVisualizer {
     });
     this.ribbonMesh = new THREE.Mesh(this.ribbonGeo, this.ribbonMat);
     this.ribbonMesh.frustumCulled = false;
+    this.ribbonMesh.castShadow = false;
+    this.ribbonMesh.receiveShadow = false;
+    this.ribbonMesh.renderOrder = 998;
+
+    // 2. 3D Red Stop-Line Bar (Draw Call #2, only when active)
+    const stopGeo = new THREE.PlaneGeometry(3.6, 0.45);
+    stopGeo.rotateX(-Math.PI / 2);
+    this.stopMat = new MatClass({
+      color: 0xef4444,
+      transparent: true,
+      opacity: 0.90,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+    this.stopLineMesh = new THREE.Mesh(stopGeo, this.stopMat);
+    this.stopLineMesh.visible = false;
+    this.stopLineMesh.renderOrder = 999;
+    this.stopLineMesh.castShadow = false;
+    this.stopLineMesh.receiveShadow = false;
+
+    // 3. Minimalist Perception Highlights (Reused floor-ring markers)
+    // 3a. Lead Vehicle Marker
+    const leadGeo = new THREE.RingGeometry(1.5, 1.85, 24);
+    leadGeo.rotateX(-Math.PI / 2);
+    this.leadMat = new MatClass({
+      color: 0x00f0ff,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+    this.leadMarkerMesh = new THREE.Mesh(leadGeo, this.leadMat);
