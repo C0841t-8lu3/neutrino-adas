@@ -96,6 +96,13 @@ impl QnxWsBridge {
         let mut qnx_writer = qnx_stream.try_clone().expect("Failed to clone QNX socket");
         let mut qnx_reader = BufReader::new(qnx_stream);
 
+        // Pre-allocate zero-GC reuse buffers for 60 Hz relay
+        let mut qnx_send_buf: Vec<u8> = Vec::with_capacity(4096);
+        let mut qnx_response = String::with_capacity(4096);
+        let mut ws_payload = String::with_capacity(4096);
+
+        // Rolling RTT latency tracking (microseconds)
+        let mut rtt_samples: Vec<u64> = Vec::with_capacity(1000);
         let mut frame_count = 0u64;
         let mut last_log = Instant::now();
 
@@ -113,10 +120,12 @@ impl QnxWsBridge {
             if let Message::Text(telemetry_json) = msg {
                 let start = Instant::now();
 
-                // Forward telemetry line to QNX RTOS
-                let mut line = telemetry_json.trim().to_string();
-                line.push('\n');
-                if let Err(e) = qnx_writer.write_all(line.as_bytes()) {
+                // Forward telemetry line to QNX RTOS using pre-allocated buffer
+                qnx_send_buf.clear();
+                qnx_send_buf.extend_from_slice(telemetry_json.trim().as_bytes());
+                qnx_send_buf.push(b'\n');
+
+                if let Err(e) = qnx_writer.write_all(&qnx_send_buf) {
                     eprintln!("[QnxWsBridge] Failed to send to QNX: {}", e);
                     break;
                 }
