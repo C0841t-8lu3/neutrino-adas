@@ -54,3 +54,31 @@ export class ActuatorDynamics {
     this.actualBrake = 0.0;
   }
 
+  /**
+   * Applies first-order physical lag, rate limiting, and road adhesion.
+   *
+   * @param {number} cmdThrottle QNX commanded throttle (0.0 to 1.0)
+   * @param {number} cmdBrake QNX commanded brake (0.0 to 1.0)
+   * @param {number} cmdSteer QNX commanded steering (-1.0 to +1.0)
+   * @param {number} dt Time step (seconds)
+   * @returns {{ throttle: number, brake: number, steer: number, frictionMu: number }}
+   */
+  step(cmdThrottle, cmdBrake, cmdSteer, dt = 0.016) {
+    if (!this.enabled) {
+      this.actualThrottle = cmdThrottle;
+      this.actualBrake = cmdBrake;
+      this.actualSteer = cmdSteer;
+      return {
+        throttle: cmdThrottle,
+        brake: cmdBrake,
+        steer: cmdSteer,
+        frictionMu: this.frictionMu
+      };
+    }
+
+    const safeDt = Math.max(0.001, Math.min(0.05, dt));
+
+    // 1. Steering First-Order Lag + Physical Rate Limit
+    const targetSteer = Math.max(-1.0, Math.min(1.0, cmdSteer));
+    const steerAlpha = 1.0 - Math.exp(-safeDt / Math.max(0.01, this.steerLagTau));
+    let rawDeltaSteer = (targetSteer - this.actualSteer) * steerAlpha;
