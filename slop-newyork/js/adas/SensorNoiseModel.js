@@ -151,3 +151,41 @@ export class SensorNoiseModel {
         const shadowSpan = (c.orig.type === 1) ? 0.06 : 0.04;
         shadowFrustums.push({
           min: c.azimuth - shadowSpan,
+          max: c.azimuth + shadowSpan
+        });
+      }
+    }
+    this.lastOccludedCount = occludedCount;
+
+    // 3. Packet Dropout & Range-Dependent Gaussian Measurement Noise
+    let droppedCount = 0;
+    const measuredList = [];
+
+    for (let i = 0; i < candidates.length; i++) {
+      const c = candidates[i];
+      if (c.occluded) continue;
+
+      // Stochastic radar reflection drop
+      if (this.rng() < this.dropoutRate) {
+        c.dropped = true;
+        droppedCount++;
+        continue;
+      }
+
+      // Range-dependent noise: farther objects have wider uncertainty
+      const sigmaZ = 0.15 + 0.012 * c.range;
+      const sigmaX = 0.12 + 0.006 * c.range;
+      const sigmaV = 0.25;
+
+      const noisyForward = Math.max(0.5, c.forwardDist + this.gaussian(0, sigmaZ));
+      const noisyLateral = c.lateralDist + this.gaussian(0, sigmaX);
+      const noisySpeed = Math.max(0, (c.orig.speed || 0) + this.gaussian(0, sigmaV));
+
+      // Reconstruct noisy world coordinates
+      const noisyWorldX = egoX + (noisyLateral * cosH) + (noisyForward * sinH);
+      const noisyWorldZ = egoZ + (-noisyLateral * sinH) + (noisyForward * cosH);
+
+      measuredList.push({
+        orig: c.orig,
+        x: Math.round(noisyWorldX * 100) / 100,
+        z: Math.round(noisyWorldZ * 100) / 100,
