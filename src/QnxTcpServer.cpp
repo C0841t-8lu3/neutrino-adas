@@ -67,6 +67,21 @@ bool QnxTcpServer::start() {
 }
 
 void QnxTcpServer::handleClient(int client_sock) {
+    // 1. Enforce TCP_NODELAY on accepted client socket
+    int nodelay_opt = 1;
+    setsockopt(client_sock, IPPROTO_TCP, TCP_NODELAY, &nodelay_opt, sizeof(nodelay_opt));
+
+    // 2. Real-Time thread priority under QNX Neutrino RTOS
+#ifdef __QNXNTO__
+    struct sched_param param;
+    param.sched_priority = 20; // High real-time priority in QNX range
+    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &param) == 0) {
+        std::cout << "[QNX RTOS] Elevated client thread to SCHED_FIFO priority 20 (Real-Time)\n";
+    } else {
+        std::cout << "[QNX RTOS] Note: Running at standard priority (SCHED_FIFO elevation skipped/unprivileged)\n";
+    }
+#endif
+
     char buffer[4096];
     std::string line_buffer;
 
