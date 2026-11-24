@@ -108,9 +108,14 @@ export class PerceptionScanner {
     const sin = Math.sin(car.heading);
     const cos = Math.cos(car.heading);
 
-    const traffic = [];
+    this._trafficList.length = 0;
+    let poolIdx = 0;
+
     if (this.trafficSystem?.cars) {
-      for (const c of this.trafficSystem.cars) {
+      const cars = this.trafficSystem.cars;
+      const count = cars.length;
+      for (let i = 0; i < count; i++) {
+        const c = cars[i];
         if (Number.isFinite(c.x) && Number.isFinite(c.z)) {
           traffic.push({ ...c, kind: 'Car', isBus: false });
         }
