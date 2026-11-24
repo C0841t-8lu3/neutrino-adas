@@ -83,3 +83,45 @@ export class ScenarioInjector {
           actor.yaw = ego.heading;
           actor.tx = sin;
           actor.tz = cos;
+          actor.dl = 3.6;
+          actor.dlv = -2.6; // fast lateral merge rate towards ego line
+          this._injectedActor = actor;
+        }
+        this.activeScenario = {
+          id: 1,
+          name: 'Cut-In Hazard',
+          duration: 4.5,
+          startTime: (typeof performance !== 'undefined' ? performance.now() : Date.now())
+        };
+        this.lastStatus = 'Scenario 1: Cut-In Hazard Active';
+        break;
+      }
+
+      case 2: {
+        // Scenario 2: Sudden Pedestrian Jaywalk
+        // Sidewalk walker darts across path at +16m fwd, +6m lat -> 0m lat at 2.8 m/s
+        const ped = this.findOrBorrowPedestrian();
+        if (ped) {
+          ped.placed = true;
+          ped.x = px + 16.0 * sin + 6.0 * cos;
+          ped.z = pz + 16.0 * cos - 6.0 * sin;
+          ped.speed = 2.8;
+          ped.v = 2.8;
+          // Vector pointing across ego corridor (from right to left)
+          ped.ux = -cos;
+          ped.uz = sin;
+          ped.dir = 1;
+          ped.crossesStreets = true;
+          this._injectedActor = ped;
+        }
+        this.activeScenario = {
+          id: 2,
+          name: 'Pedestrian Jaywalk (AEB + Horn)',
+          duration: 5.0,
+          startTime: (typeof performance !== 'undefined' ? performance.now() : Date.now())
+        };
+        this.lastStatus = 'Scenario 2: Pedestrian Jaywalk Active';
+        break;
+      }
+
+      case 3: {
