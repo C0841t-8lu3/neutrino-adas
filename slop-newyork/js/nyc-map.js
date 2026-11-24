@@ -875,10 +875,14 @@ class NYCMapSystem {
               z: wPos.z,
               name: getLocationLabel(wPos.x, wPos.z)
             };
-            if (this.onTeleport) {
-              this.onTeleport(wPos.x, wPos.z);
+            if (this.elDestPopover) {
+              this.showDestPopover(e.clientX, e.clientY, wPos);
+            } else {
+              if (this.onTeleport) {
+                this.onTeleport(wPos.x, wPos.z);
+              }
+              this.renderFullMap();
             }
-            this.renderFullMap();
           }
         }
       });
