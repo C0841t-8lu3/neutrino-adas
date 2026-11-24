@@ -210,3 +210,45 @@ export class ScenarioInjector {
         return false;
     }
 
+    this.scenarioTimer = 0;
+    this.updatePanel();
+    return true;
+  }
+
+  cancelActiveScenario() {
+    if (!this.activeScenario) return;
+
+    if (this.activeScenario.id === 5 && this.autonomousDriver) {
+      if (this.autonomousDriver.actuatorDynamics) {
+        this.autonomousDriver.actuatorDynamics.setSurface('dry');
+      }
+      if (this.autonomousDriver.perceptionScanner?.sensorNoiseModel) {
+        this.autonomousDriver.perceptionScanner.sensorNoiseModel.setDropoutRate(0.02);
+      }
+    }
+
+    this.activeScenario = null;
+    this._injectedActor = null;
+    this.lastStatus = 'Scenario Complete / Ready';
+    this.updatePanel();
+  }
+
+  findOrBorrowVehicle() {
+    if (!this.trafficSystem?.cars || this.trafficSystem.cars.length === 0) return null;
+    return this.trafficSystem.cars[0];
+  }
+
+  findOrBorrowPedestrian() {
+    if (!this.trafficSystem?.peds || this.trafficSystem.peds.length === 0) return null;
+    return this.trafficSystem.peds[0];
+  }
+
+  update(dt) {
+    // 1. Progress active test scenario
+    if (this.activeScenario) {
+      this.scenarioTimer += dt;
+
+      // Handle scenario-specific actor dynamics
+      if (this.activeScenario.id === 1 && this._injectedActor) {
+        // Cut-In: vehicle slides inward laterally towards 0
+        if (this._injectedActor.dl > 0.05) {
