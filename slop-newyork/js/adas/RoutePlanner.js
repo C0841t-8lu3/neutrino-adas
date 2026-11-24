@@ -343,3 +343,35 @@ export class RoutePlanner {
       if (k < edgePath.length - 1 && connector && curvePoint) {
         const nextEdge = edgePath[k + 1].edge;
         let fromLaneIdx = laneIdx;
+        let toLaneIdx = (nextEdge.lanes && nextEdge.lanes.length > 0)
+          ? Math.floor(nextEdge.lanes.length / 2)
+          : 0;
+
+        if (nextMove) {
+          if (nextMove.turn === 'L') {
+            fromLaneIdx = 0;
+            toLaneIdx = 0;
+          } else if (nextMove.turn === 'R') {
+            fromLaneIdx = (edge.lanes && edge.lanes.length > 0) ? edge.lanes.length - 1 : 0;
+            toLaneIdx = (nextEdge.lanes && nextEdge.lanes.length > 0) ? nextEdge.lanes.length - 1 : 0;
+          } else if (nextMove.out && nextMove.out[fromLaneIdx] >= 0) {
+            toLaneIdx = nextMove.out[fromLaneIdx];
+          }
+        }
+
+        let curve = null;
+        try {
+          curve = connector(edge, fromLaneIdx, nextEdge, toLaneIdx);
+        } catch (_) {}
+
+        if (curve && curve.len > 0.5) {
+          const curveSteps = Math.max(4, Math.ceil(curve.len / 1.5));
+          const pt = { x: 0, z: 0, dx: 0, dz: 0 };
+
+          for (let ci = 1; ci <= curveSteps; ci++) {
+            const cs = (ci / curveSteps) * curve.len;
+            curvePoint(curve, cs, pt);
+            const cheading = Math.atan2(pt.dx, pt.dz);
+
+            if (waypoints.length > 0) {
+              const prev = waypoints[waypoints.length - 1];
