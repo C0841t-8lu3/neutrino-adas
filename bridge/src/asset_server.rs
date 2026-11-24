@@ -119,9 +119,26 @@ impl AssetServer {
                             continue;
                         }
                     }
-                } else {
-                    let _ = request.respond(Response::from_string("404 Not Found").with_status_code(404));
+                };
+
+                let cursor = Cursor::new((*asset.data).clone());
+                let mut response = Response::new(
+                    tiny_http::StatusCode(200),
+                    vec![
+                        Header::from_bytes(&b"Content-Type"[..], asset.mime.as_bytes()).unwrap(),
+                        Header::from_bytes(&b"Access-Control-Allow-Origin"[..], &b"*"[..]).unwrap(),
+                        Header::from_bytes(&b"Cache-Control"[..], asset.cache_control.as_bytes()).unwrap(),
+                    ],
+                    cursor,
+                    Some(asset.data.len()),
+                    None,
+                );
+                if asset.is_gz {
+                    if let Ok(hdr) = Header::from_bytes(&b"Content-Encoding"[..], &b"gzip"[..]) {
+                        response.add_header(hdr);
+                    }
                 }
+                let _ = request.respond(response);
             }
         })
     }
