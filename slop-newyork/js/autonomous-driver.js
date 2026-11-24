@@ -84,9 +84,47 @@ export class AutonomousDriver {
 
     this.hudView = new AdasHudView({
       onToggle: () => this.toggle(),
+      onProfileChange: (p) => this.setDriveProfile(p),
+      onToggleFsdVis: () => {
+        if (this.fsdVisualizer) {
+          this.fsdVisualizer.toggle();
+          this.updateHud();
+        }
+      },
       onLaneChangeLeft: () => this.requestLaneChange(-1),
-      onLaneChangeRight: () => this.requestLaneChange(+1)
+      onLaneChangeRight: () => this.requestLaneChange(+1),
+      onToggleSensors: () => {
+        const snm = this.perceptionScanner?.sensorNoiseModel;
+        if (snm) {
+          snm.setRealistic(!snm.enabled);
+          this.updateHud();
+        }
+      },
+      onToggleSurface: () => {
+        if (this.actuatorDynamics) {
+          const next = this.actuatorDynamics.surfaceType === 'dry' ? 'wet' : 'dry';
+          this.actuatorDynamics.setSurface(next);
+          this.updateHud();
+        }
+      },
+      onExportJson: () => this.telemetryRecorder.exportJson(),
+      onExportCsv: () => this.telemetryRecorder.exportCsv()
     });
+
+    // Zero-GC pre-allocated telemetry packet object
+    this._telemetryPacket = {
+      seq: 0,
+      x: 0,
+      y: 0,
+      z: 0,
+      speed: 0,
+      heading: 0,
+      steer_angle: 0,
+      current_lane: 1,
+      target_lane: 1,
+      dt: 0.016,
+      obs: []
+    };
 
     // Expose DOM & Canvas handles for wire-compatibility
     this.hudElement = this.hudView.hudElement;
