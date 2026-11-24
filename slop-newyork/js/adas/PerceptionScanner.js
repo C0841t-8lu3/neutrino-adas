@@ -138,15 +138,54 @@ export class PerceptionScanner {
       for (let i = 0; i < count; i++) {
         const b = buses[i];
         if (Number.isFinite(b.x) && Number.isFinite(b.z)) {
-          traffic.push({ ...b, kind: 'Bus', isBus: true });
+          const item = this._acquireTrafficItem(poolIdx++);
+          item.x = b.x;
+          item.z = b.z;
+          item.v = b.v || 0;
+          item.half = b.half || 3.5;
+          item.kind = 'Bus';
+          item.isBus = true;
+          item.isPedestrian = false;
+          item.vx = 0;
+          item.vz = 0;
+          this._trafficList.push(item);
         }
       }
     }
 
-    // Scan for upcoming Red / Amber Traffic Signals on the current avenue corridor
+    // Include dynamic sidewalk & crosswalk pedestrians within perception range
+    if (this.trafficSystem?.peds) {
+      const peds = this.trafficSystem.peds;
+      const count = peds.length;
+      for (let i = 0; i < count; i++) {
+        const p = peds[i];
+        if (p.placed && Number.isFinite(p.x) && Number.isFinite(p.z)) {
+          const dx = p.x - px;
+          const dz = p.z - pz;
+          const distSq = dx * dx + dz * dz;
+          if (distSq < 2500) { // within 50m
+            const item = this._acquireTrafficItem(poolIdx++);
+            item.x = p.x;
+            item.z = p.z;
+            item.v = p.v || 0;
+            item.half = 0.5;
+            item.kind = 'Pedestrian';
+            item.isBus = false;
+            item.isPedestrian = true;
+            item.vx = (p.ux || 0) * (p.v || 0) * (p.dir || 1);
+            item.vz = (p.uz || 0) * (p.v || 0) * (p.dir || 1);
+            this._trafficList.push(item);
+          }
+        }
+      }
+    }
+
+    // Scan for upcoming Red / Amber Traffic Signals matching the vehicle's current travel axis
     const timeOffset = (typeof window !== 'undefined' && window.__BENCHMARK_TIME_OFFSET__) || 0;
     const effectiveTime = elapsed + timeOffset;
-    const aveSignal = signalPhase(effectiveTime, true);
+
+    // Determine current travel axis: Avenue (N/S, |sin(heading)| < 0.6) vs Cross-Street (E/W)
+    const isAvenue = Math.abs(sin) < 0.6;
     let redStopObstacle = null;
 
     if ((aveSignal === 'red' || aveSignal === 'amber') && this.trafficSystem?.network?.nodes) {
