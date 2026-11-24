@@ -155,3 +155,34 @@ export class RoutePlanner {
 
     const startSnap = this.snapToNearestEdge(startPos.x, startPos.z, startHeading);
     const goalSnap = this.snapToNearestEdge(goalPos.x, goalPos.z, null);
+
+    if (!startSnap || !goalSnap) {
+      console.warn('[RoutePlanner] Could not snap origin or destination to road network.');
+      return null;
+    }
+
+    const startEdge = startSnap.edge;
+    const goalEdge = goalSnap.edge;
+
+    // A* Graph Search over road edges
+    // Distance heuristic: Euclidean distance from edge endpoint to goal
+    const heuristic = (edge) => {
+      const endX = edge.sx + edge.dx * edge.len;
+      const endZ = edge.sz + edge.dz * edge.len;
+      return Math.hypot(goalSnap.projX - endX, goalSnap.projZ - endZ);
+    };
+
+    const gScore = new Map();
+    const fScore = new Map();
+    const cameFrom = new Map(); // edge.id -> { edge, move, curve }
+
+    // Min-heap / priority list
+    const openSet = [startEdge];
+    gScore.set(startEdge.id, 0);
+    fScore.set(startEdge.id, heuristic(startEdge));
+
+    let foundGoal = false;
+    let iterations = 0;
+    const maxIterations = 6000;
+
+    while (openSet.length > 0 && iterations++ < maxIterations) {
