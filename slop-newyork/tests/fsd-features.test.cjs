@@ -225,3 +225,41 @@ test('FsdVisualizer highlights Stop-Line bar, Lead Vehicle, and BSM indicator', 
 test('AutonomousDriver supports FSD profiles (CHILL, STANDARD, HURRY) and hotkey cycle', () => {
   const driverSource = readFileSync(join(__dirname, '../js/autonomous-driver.js'), 'utf8');
   const { AutonomousDriver } = loadModule(driverSource, {
+    globals: { performance, console, Date, Math },
+    imports: {
+      './adas/QnxTelemetryClient.js': { QnxTelemetryClient: class { connect() {} isConnected() { return true; } send(pkt) { this.lastPacket = pkt; } } },
+      './adas/PerceptionScanner.js': { PerceptionScanner: class { scanPerception() { return { trafficList: [], leadDist: 999, leadRelSpeed: 0, ttc: 999 }; } buildObstaclePayload() { return []; } } },
+      './adas/SideMirrorRenderer.js': { SideMirrorRenderer: class { renderSideMirror() {} } },
+      './adas/AdasHudView.js': { AdasHudView: class { updateHud() {} setVisibility() {} } },
+      './adas/HornAudioEngine.js': { HornAudioEngine: class { initAudio() {} playHornSound() {} } },
+      './adas/RoutePlanner.js': { RoutePlanner: class { hasActiveRoute() { return false; } } },
+      './adas/ActuatorDynamics.js': { ActuatorDynamics: class { step(t, b, s) { return { throttle: t, brake: b, steer: s }; } } },
+      './adas/TelemetryRecorder.js': { TelemetryRecorder: class { record() {} } },
+      './adas/ScenarioInjector.js': { ScenarioInjector: class { update() {} } },
+      './adas/FsdVisualizer.js': { FsdVisualizer: class { update() {} toggle() {} setVisible() {} } }
+    }
+  });
+
+  const mockCar = { position: { x: 0, y: 0, z: 0 }, speed: 10, heading: 0, steerAngle: 0, carState: { value: { x: 0, y: 0, z: 0 } } };
+  const mockController = { activeMode: 'car', entities: { car: mockCar }, keys: {} };
+
+  const driver = new AutonomousDriver(mockController, {});
+  assert.equal(driver.driveProfile, 1, 'Default profile is STANDARD (1)');
+
+  driver.setDriveProfile(0);
+  assert.equal(driver.driveProfile, 0, 'Set to CHILL (0)');
+
+  driver.cycleDriveProfile();
+  assert.equal(driver.driveProfile, 1, 'Cycled to STANDARD (1)');
+
+  driver.cycleDriveProfile();
+  assert.equal(driver.driveProfile, 2, 'Cycled to HURRY (2)');
+
+  driver.cycleDriveProfile();
+  assert.equal(driver.driveProfile, 0, 'Cycled back to CHILL (0)');
+
+  // Telemetry encoding check
+  driver.setDriveProfile(2);
+  driver.update(0.016);
+  assert.equal(driver._telemetryPacket.drive_profile, 2, 'drive_profile: 2 transmitted in telemetry');
+});
