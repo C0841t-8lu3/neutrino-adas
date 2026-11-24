@@ -43,3 +43,26 @@ void JerkLimiter::process(
         if (raw_brake <= 0.01f) {
             current_accel_ = 0.0f;
         } else {
+            current_accel_ = -config_.max_service_brake;
+        }
+    }
+
+    // 2. Longitudinal S-Curve Jerk Limiting
+    float target_accel = 0.0f;
+    if (raw_throttle > 0.0f) {
+        target_accel = raw_throttle * config_.max_accel;
+    } else if (raw_brake > 0.0f) {
+        target_accel = -raw_brake * config_.max_service_brake;
+    }
+
+    float max_jerk = (config_.max_jerk > 0.0f) ? config_.max_jerk : 2.8f;
+    float effective_dt = std::max(0.001f, dt);
+    float da_max = max_jerk * effective_dt;
+
+    float da = target_accel - current_accel_;
+    da = std::max(-da_max, std::min(da_max, da));
+    current_accel_ += da;
+
+    // Small deadband to prevent microscopic floating creep near zero
+    if (std::abs(current_accel_) < 0.015f && target_accel == 0.0f) {
+        current_accel_ = 0.0f;
