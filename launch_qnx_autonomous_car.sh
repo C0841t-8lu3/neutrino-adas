@@ -14,12 +14,15 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUST_APP_DIR="$PROJECT_DIR"
 QNX_VM_IP="192.168.122.62"
 QNX_PORT="9090"
+QEMU_DIR="/home/aauel/qnxprojects/targets/qemu-qnx800-x86_64-1"
 
 echo -e "\033[1;36m==================================================================\033[0m"
 echo -e "\033[1;36m  QNX 8.0 NEUTRINO RTOS - AUTONOMOUS CAR 3D SIMULATION SYSTEM     \033[0m"
 echo -e "\033[1;36m==================================================================\033[0m"
 
-# 1. Check QNX VM Connectivity
+# 1. Check QNX VM Connectivity (Auto-boot if offline)
+SSH_OPTS="-o BatchMode=yes -o LogLevel=ERROR -o ConnectTimeout=2"
+
 echo -e "\n\033[1;33m[1/3] Checking QNX 8.0 RTOS Target ($QNX_VM_IP)...\033[0m"
 if ! ssh -o BatchMode=yes -o ConnectTimeout=3 qnxuser@"$QNX_VM_IP" "uname -s" >/dev/null 2>&1; then
     echo -e "\033[1;31m[ERROR] Cannot reach QNX VM at $QNX_VM_IP via SSH.\033[0m"
