@@ -404,16 +404,13 @@ export class AdasHudView {
     }
 
     if (elBanner) {
-      elBanner.textContent = data.statusMessage;
-      if (data.statusMessage.includes('PREVENTED') || data.statusMessage.includes('Blocked')) {
-        elBanner.style.borderLeftColor = '#ef4444';
-        elBanner.style.color = '#fca5a5';
-      } else if (data.statusMessage.includes('AEB')) {
-        elBanner.style.borderLeftColor = '#ef4444';
-        elBanner.style.color = '#fca5a5';
+      this._setDomText(elBanner, data.statusMessage);
+      if (data.statusMessage.includes('PREVENTED') || data.statusMessage.includes('Blocked') || data.statusMessage.includes('AEB') || data.statusMessage.includes('WATCHDOG')) {
+        this._setStyle(elBanner, 'borderLeftColor', '#ef4444');
+        this._setStyle(elBanner, 'color', '#fca5a5');
       } else if (data.statusMessage.includes('ACC')) {
-        elBanner.style.borderLeftColor = '#f59e0b';
-        elBanner.style.color = '#fef08a';
+        this._setStyle(elBanner, 'borderLeftColor', '#f59e0b');
+        this._setStyle(elBanner, 'color', '#fef08a');
       } else {
         elBanner.style.borderLeftColor = '#06b6d4';
         elBanner.style.color = '#cbd5e1';
