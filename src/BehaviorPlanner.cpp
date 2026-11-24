@@ -204,3 +204,29 @@ BehaviorDecision BehaviorPlanner::plan(
                             if (decision.behavior_status.empty()) {
                                 decision.behavior_status = "QNX FSD: Lateral Nudge -> Giving Space to Left Hazard";
                             }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    // Rate-limit lateral nudge smoothly (~1.0 m/s lateral rate)
+    float max_dnudge = 1.0f * std::max(0.001f, dt);
+    float dnudge = target_nudge - current_nudge_;
+    dnudge = std::max(-max_dnudge, std::min(max_dnudge, dnudge));
+    current_nudge_ += dnudge;
+    decision.lateral_nudge = current_nudge_;
+
+    // 4. Predictive Cornering & Intersection Creep
+    // Use lookahead curvature (path_curvature + upcoming next_curvature)
+    // to brake smoothly before corner entry and accelerate progressively out of the apex.
+    float max_curv = std::max(std::abs(ego.path_curvature), std::abs(ego.next_curvature));
+    if (max_curv > 0.005f) {
+        float a_lat = 2.4f;
+        if (config_.profile == DriveProfile::CHILL) a_lat = 1.8f;
+        else if (config_.profile == DriveProfile::HURRY) a_lat = 2.8f;
+
+        float v_corner = std::sqrt(a_lat / max_curv);
+        decision.speed_limit_override = std::min(decision.speed_limit_override, v_corner);
