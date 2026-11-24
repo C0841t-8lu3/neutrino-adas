@@ -202,3 +202,37 @@ export class PerformanceGovernor {
     const fpsColor = this.fps >= 55 ? '#10b981' : this.fps >= 35 ? '#f59e0b' : '#ef4444';
     const rttText = this.qnxRttUs > 0 ? `${this.qnxRttUs}µs` : 'offline';
     const profColor = this.profile === 'LOW' ? '#f59e0b' : this.profile === 'HIGH' ? '#a855f7' : '#38bdf8';
+    const profBadge = `<span style="color:${profColor};background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:10px;">${this.profile === 'LOW' ? 'LOW / i3' : this.profile}</span>`;
+
+    if (this.compactMode) {
+      text = `${profBadge} · <span style="color:${fpsColor};">⚡ ${this.fps} FPS</span> · <span>${this.emaFrameMs.toFixed(1)}ms</span> · <span style="color:#38bdf8;">QNX: ${rttText}</span>`;
+    } else {
+      text = `
+        ${profBadge}
+        <span style="color:#64748b;">|</span>
+        <span style="color:${fpsColor};">⚡ ${this.fps} FPS</span>
+        <span style="color:#64748b;">|</span>
+        <span style="color:#94a3b8;">${this.emaFrameMs.toFixed(1)}ms</span>
+        <span style="color:#64748b;">|</span>
+        <span style="color:#cbd5e1;">Draws: ${this.drawCalls || '--'}</span>
+        <span style="color:#64748b;">|</span>
+        <span style="color:#38bdf8;">QNX RTT: ${rttText}</span>
+        <span style="color:#64748b;">|</span>
+        <span style="color:#a78bfa;">Obs: ${this.activeObstacles}</span>
+        <span style="color:#64748b;">|</span>
+        <span style="color:#94a3b8;">DPR: ${this.currentDpr.toFixed(2)}</span>
+      `;
+    }
+
+    if (force || text !== this._lastText) {
+      this._lastText = text;
+      this.pillElement.innerHTML = text;
+    }
+  }
+
+  destroy() {
+    if (this.pillElement && this.pillElement.parentNode) {
+      this.pillElement.parentNode.removeChild(this.pillElement);
+    }
+  }
+}
