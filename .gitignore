@@ -1,6 +1,11 @@
 # Rust build artifacts
 target/
 
+# Python / offline scenario export helpers
+.venv/
+__pycache__/
+*.py[cod]
+
 # QNX build artifacts
 *.o
 *.dep
