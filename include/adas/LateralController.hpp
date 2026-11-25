@@ -33,7 +33,10 @@ public:
     void reset();
 
     int getDesiredLane() const { return desired_lane_; }
-    void setDesiredLane(int lane) { desired_lane_ = lane; }
+    void setDesiredLane(int lane) {
+        desired_lane_ = lane;
+        current_lane_f_ = static_cast<float>(lane);
+    }
     bool isLaneChangeActive() const { return lane_change_active_; }
 
     void setConfig(const AdasConfig& config) { config_ = config; }
@@ -44,6 +47,13 @@ private:
     int desired_lane_ = 1;
     bool lane_change_active_ = false;
     float lane_change_timer_ = 0.0f;
+    float lc_start_lane_f_ = 1.0f;
+    float current_lane_f_ = 1.0f;
+    float lc_elapsed_s_ = 0.0f;
+    float lc_duration_s_ = 3.2f;
+    float prev_lateral_error_ = 0.0f;
+    float filtered_e_lat_dot_ = 0.0f;
+    bool first_step_ = true;
 };
 
 } // namespace adas
