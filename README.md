@@ -1,256 +1,141 @@
-# Neutrino ADAS: Real-Time Autonomous Driving on QNX 8.0 RTOS
+# QNX 8.0 Neutrino RTOS <-> Native Bevy 3D Autonomous Driving Simulator
 
-<div align="center">
-
-[![QNX](https://img.shields.io/badge/QNX-Neutrino%208.0-red.svg?style=for-the-badge&logo=blackberry)](https://blackberry.qnx.com)
-[![Rust](https://img.shields.io/badge/Rust-1.80+-orange.svg?style=for-the-badge&logo=rust)](https://www.rust-lang.org/)
-[![Three.js](https://img.shields.io/badge/Three.js-WebGPU%20TSL-blue.svg?style=for-the-badge&logo=three.js)](https://threejs.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20QNX%20x86__64%20%7C%20aarch64-green.svg?style=for-the-badge)]()
-
-**An empirical, mission-critical ADAS (Advanced Driver Assistance Systems) platform integrating a deterministic QNX 8.0 Neutrino RTOS L3 Safety Kernel with a procedural 1:1 scale Manhattan 3D simulation (Three.js WebGPU / TSL) and a high-performance native Rust desktop runtime.**
-
-[Key Features](#-key-features) • [System Architecture](#-system-architecture) • [Empirical Benchmarks](#-empirical-benchmarks--optimization) • [Quickstart](#-quickstart--build-guide) • [Acknowledgements](#-acknowledgements--credits)
-
-</div>
+A native 60 FPS **Bevy `0.15` + `bevy_egui`** 3D autonomous driving simulator wired directly to a **BlackBerry QNX Neutrino 8.0 C++ Safety Kernel** over TCP (`192.168.122.62:9090`), rendering **real extracted MetaDrive `.gltf` 3D vehicle/pedestrian/cyclist/signal models** and **offline-exported ScenarioNet Waymo HD maps & tracks** (`--map waymo`) alongside our continuous **~10+ km procedural multi-lane city/highway network** (`--map mega10km`), tuned for **Intel Core i3 (6th gen) + Intel HD integrated graphics**.
 
 ---
 
-## 🌟 Overview
+## System Architecture
 
-**Neutrino ADAS** demonstrates a real-world automotive architecture where hard real-time vehicle dynamics and safety-critical decisions run within **BlackBerry QNX Neutrino RTOS 8.0**, decoupled from non-real-time visualization. 
-
-The vehicle operates inside a true-to-scale, 1:1 procedural Manhattan digital twin ("Slop New York" by Mr.doob), receiving simulated multi-sensor telemetry (forward radar, blind-spot detectors, traffic signal network) and transmitting microsecond-level actuation commands (steering angle, throttle, service brakes, turn blinkers, horn) over a low-latency IPC socket bridge.
-
-Driving accuracy is **measured, not guessed**: the platform incorporates a headless Chrome DevTools Protocol (CDP) automated benchmarking engine that samples 5 core ADAS metrics at 60 FPS across fixed test routes on 5th Avenue.
-
----
-
-## 🏛 System Architecture
-
-The project employs a clean three-tier distributed architecture:
-
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                              QNX 8.0 NEUTRINO RTOS VM                                  │
-│                                                                                        │
-│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
-│   │                      ADAS L3 Real-Time Safety Kernel                           │   │
-│   │                                                                                │   │
-│   │   • Nonlinear Stanley Lateral Tracking Controller                              │   │
-│   │   • Kinematic Intersection Stop-Line Deceleration Profile                      │   │
-│   │   • Dual-Mirror Blind Spot Monitoring (BSM) Radar Engines (-8.5m to +3.0m)     │   │
-│   │   • Automatic Emergency Braking (AEB, TTC < 1.7s @ -8.5 m/s²)                  │   │
-│   │   • Adaptive Cruise Control (ACC) & Stop-and-Hold Service Brake                │   │
-│   │   • High-Priority POSIX Non-Blocking Socket Server (Port 9090)                 │   │
-│   └───────────────────────────────────────┬────────────────────────────────────────┘   │
-└───────────────────────────────────────────┼────────────────────────────────────────────┘
-                                     TCP / IP (9090)
-┌───────────────────────────────────────────┼────────────────────────────────────────────┐
-│                       RUST NATIVE DESKTOP HOST APPLICATION                             │
-│                                           │                                            │
-│   ┌───────────────────────────────────────┴────────────────────────────────────────┐   │
-│   │                       Asynchronous IPC & Asset Bridge                          │   │
-│   │                                                                                │   │
-│   │   • Multithreaded Static Asset HTTP Server (Port 8088)                         │   │
-│   │   • Full-Duplex WebSocket IPC Server (Port 8089)                               │   │
-│   │   • Dedicated TCP Client Relay to QNX Virtual Machine                          │   │
-│   │   • Native Borderless WebGPU Application Window Launcher                       │   │
-│   │   • Ultra-Low-Latency Telemetry Forwarding (< 0.2ms socket jitter)             │   │
-│   └───────────────────────────────────────┬────────────────────────────────────────┘   │
-└───────────────────────────────────────────┼────────────────────────────────────────────┘
-                                    WebSocket (8089)
-┌───────────────────────────────────────────┼────────────────────────────────────────────┐
-│                      3D SIMULATION ENGINE (SLOP NEW YORK)                              │
-│                                           │                                            │
-│   ┌───────────────────────────────────────┴────────────────────────────────────────┐   │
-│   │                      WebGPU / Three.js TSL Runtime                             │   │
-│   │                                                                                │   │
-│   │   • True 1:1 Scale Manhattan Road Graph & Island Footprints (5th Ave Corridor) │   │
-│   │   • Real-Time Dual Side-View Mirror Offscreen Canvas Projections               │   │
-│   │   • Procedural Traffic Flow, Ambient City Buses, & Pedestrian Crowds           │   │
-│   │   • Signal Phase Timing Network (Avenue vs. Street 60s Cycles)                 │   │
-│   │   • 60 FPS Telemetry Sensors & Actuator Dynamic Response                       │   │
-│   └────────────────────────────────────────────────────────────────────────────────┘   │
-└────────────────────────────────────────────────────────────────────────────────────────┘
+```text
++-----------------------------------------------------------------------------------+
+|                        QNX 8.0 NEUTRINO RTOS VM (192.168.122.62:9090)             |
+|  - Ackermann Feedforward + Stanley + Damping Lateral Ctrl (LateralController.cpp) |
+|  - Quintic 3.2s S-Curve Lane Changes + 1.5s Blinker & BSM Guard                   |
+|  - IDM + Monotonic Stop-Line + Point B + AEB Control (LongitudinalController.cpp) |
+|  - Behavior Planner & CHILL/STANDARD/HURRY Profiles (BehaviorPlanner.cpp)         |
+|  - Curved-Corridor Radar & Crossing-Pedestrian Filter (ForwardRadar.cpp)          |
+|  - Expanded BSM Zone [-12m, +4m] (BlindSpotMonitor.cpp)                           |
+|  - Real-Time SCHED_FIFO POSIX TCP Server (QnxTcpServer.cpp)                       |
++-----------------------------------------+-----------------------------------------+
+                                          | TCP_NODELAY (JSON line protocol)
++-----------------------------------------v-----------------------------------------+
+|                   NATIVE BEVY 3D + BEVY_EGUI SIMULATOR (rust_sim/)                |
+|  - SimConfig (config.rs): --map mega10km|waymo, --view 3d|2d, --profile, --wet    |
+|  - MegaMapGenerator / ScenarioLoader: ~10+ km loops & Waymo HD JSON maps          |
+|  - RenderSetupPlugin (render_setup.rs): Msaa::Off, no shadows, 220m linear fog    |
+|  - Scene3dPlugin (scene_3d.rs): Real glTF vehicles/peds/bikes/cones/lights + 180m |
+|    chunk culling, textured asphalt/grass/curbs, live FSD ribbon & 3D/2D camera    |
+|  - UiHudPlugin (ui_hud.rs): Minimalist egui telemetry HUD, minimap & [M] A->B map |
+|  - QnxTcpClient / TelemetryRecorder: p50/p95 RTT, 450 ms watchdog, JSON/CSV export|
++-----------------------------------------------------------------------------------+
 ```
 
 ---
 
-## ⚡ Key Features
+## Build & Usage
 
-* **Nonlinear Stanley Lateral Tracking Controller:**
-  Computes heading alignment ($\Delta\psi = \psi_{\text{ego}} - \psi_{\text{road}}$) combined with a velocity-normalized cross-track arctangent term $\arctan\left(\frac{k_e \cdot e_{\text{lat}}}{\max(2.5, v)}\right)$. Replaces unstable linear P-D control, delivering sub-centimeter lane accuracy at $50\,\text{km/h}$.
-* **Intersection Stop-Line Deceleration & Traffic Light Awareness:**
-  Scans upcoming intersection nodes dynamically, projects virtual stationary stopping barriers during amber/red phases, and calculates kinematic stopping curves $a_{\text{req}} = -\frac{v^2}{2(d - d_{\text{safe}})}$ with an active $80\%$ service brake hold at rest.
-* **Dual Real-Time Side-View Mirrors:**
-  Independent off-screen 2D canvas projections with perspective vanishing points and rearward optic deflection, rendering approaching vehicles with distance callout tags and 3D lighting.
-* **Blind Spot Monitoring (BSM) & Accident Prevention Interlock:**
-  QNX radar algorithms continuously scan left ($-4.8\,\text{m}$ to $-1.3\,\text{m}$) and right ($+1.3\,\text{m}$ to $+4.8\,\text{m}$) blind zones. Any unsafe manual or autonomous lane change is automatically aborted with visual HUD warnings and acoustic alerts.
-* **Automatic Emergency Braking (AEB) & Adaptive Cruise Control (ACC):**
-  Monitors forward Time-to-Collision ($\text{TTC}$). Full emergency deceleration ($-8.5\,\text{m/s}^2$) triggers if $\text{TTC} < 1.7\,\text{s}$ or if a pedestrian steps into the vehicle path.
-* **Automated CDP Benchmarking Harness:**
-  Built-in Python test runner (`run_benchmark.py`) attaching directly to WebGPU via Chrome DevTools Protocol to measure and verify metrics with zero human guesswork.
-
----
-
-## 📊 Empirical Benchmarks & Optimization
-
-Every improvement in this repository was recorded empirically via the automated CDP runner across identical test routes on 5th Avenue (Southbound from 35th St).
-
-### Iteration 1: Lateral Stability (Stanley Controller)
-* **Failure Mode:** Unreferenced coordinate tracking and velocity-independent P-D gains saturated steering to $-1.0\,\text{rad}$ from frame 0, resulting in 3 building/curb collisions within 2.5 seconds.
-* **Fix:** Implemented the nonlinear Stanley steering controller centered on 5th Ave Lane 1 ($x = 3.6\,\text{m}$) with speed-normalized damping.
-
-| Metric | Baseline (Pre-Fix 1) | Post-Fix 1 (Stanley) | Improvement |
-| :--- | :---: | :---: | :---: |
-| **RMS Lane-Keeping Offset** | **$12.739\,\text{m}$** | **$0.006\,\text{m}$** | **$-99.95\%$ (Sub-centimeter)** |
-| **Mean Lane Offset** | $11.424\,\text{m}$ | $0.005\,\text{m}$ | **$-99.96\%$** |
-| **Peak Lane Offset** | $17.869\,\text{m}$ | $0.021\,\text{m}$ | **$-99.88\%$** |
-| **Mean Steering Error** | $28.83^\circ$ | $0.05^\circ$ | **$-99.83\%$** |
-| **Collision Count** | **$3$ crashes** | **$0$ crashes** | **$100\%$ eliminated** |
-| **Near-Misses ($\text{TTC} < 1.5\,\text{s}$)** | $1$ | $0$ | **$100\%$ eliminated** |
-
-### Iteration 2: Traffic Light Compliance & Stop-Line Halting
-* **Failure Mode:** Vehicle cruised through red lights at $13.8\,\text{m/s}$ ($0\%$ compliance) because unsorted telemetry payloads truncated stop line barriers behind ambient city traffic.
-* **Fix:** Priority injection of virtual stop lines at index 0 of QNX telemetry, Euclidean distance sorting for surrounding obstacles, kinematic stopping profiles, and service brake holding.
-
-| Metric | Pre-Fix 2 (Red Approach) | Post-Fix 2 (Red Approach) | Improvement |
-| :--- | :---: | :---: | :---: |
-| **Red Light Violations** | **$1$ violation ($13.8\,\text{m/s}$)** | **$0$ violations ($0.0\,\text{m/s}$)** | **Zero violations** |
-| **Signal Compliance Rate** | **$50.0\%$** | **$100.0\%$** | **$+50.0\%$ (Perfect compliance)** |
-| **Collision Count** | $0$ | $0$ | Maintained zero crashes |
-| **Service Brake Engagement** | Never braked | $3$ controlled decelerations | Smooth stop at line |
-
----
-
-## 🛠 Quickstart & Build Guide
-
-### Prerequisites
-- **Ubuntu 22.04+ / Linux x86_64**
-- **QNX Software Development Platform (SDP) 8.0**
-- **Rust & Cargo** (`1.80+`)
-- **Python 3.10+** (with `websockets` package)
-- **Google Chrome** (supporting WebGPU)
-
-### 1. Build the QNX ADAS Safety Kernel
-Compile the POSIX ADAS daemon for both x86_64 and aarch64 targets using the QNX SDP toolchain:
+### 1. Build the QNX 8.0 C++ Safety Kernel
 ```bash
-# Source the QNX SDP environment
 source /home/aauel/qnx800/qnxsdp-env.sh
-
-# Build all architecture targets
 make clean && make
 ```
-The output ELF binary is generated at `nto/x86_64/o/helloworld`.
+Produces `nto/x86_64/o/helloworld` and `nto/aarch64/o-le/helloworld` with `0` compiler warnings.
 
-### 2. Build the Native Rust Desktop Host
-Compile the multi-threaded HTTP/WebSocket proxy daemon:
+### 2. Launch the Bevy 3D Simulator
 ```bash
-cargo build --release
-```
-The executable is generated at `target/release/qnx_desktop_app`.
+# Default: 3D Chase-Cam on continuous ~10+ km road network (press [V] to toggle 3D <-> 2D)
+./launch_qnx_autonomous_car.sh --view 3d --map mega10km
 
-### 3. Launch the Complete System
-Use the unified launcher script to check QNX connectivity, launch background daemons, and open the desktop application window:
-```bash
-chmod +x launch_qnx_autonomous_car.sh
-./launch_qnx_autonomous_car.sh
+# Real exported ScenarioNet Waymo urban HD maps, dynamic signals & tracks
+./launch_qnx_autonomous_car.sh --map waymo --view 3d
+
+# Start directly in Top-Down 2D Tesla FSD view
+./launch_qnx_autonomous_car.sh --view 2d
 ```
 
-### 4. Run Automated CDP Benchmarks
-Execute headless automated test routes and receive JSON telemetry reports:
+### Offline ScenarioNet Importer (`tools/export_scenarionet.py`)
+Any Waymo, nuScenes, or nuPlan ScenarioNet `.pkl` dataset can be converted once offline into self-contained JSON files under `assets/scenarios/`:
 ```bash
-# Run 25-second 5th Avenue corridor benchmark
-python3 run_benchmark.py benchmark_results.json 25.0 0.0
+python3 tools/export_scenarionet.py --input-dir /path/to/scenarionet_pkls --output-dir assets/scenarios
+```
 
-# Run 16-second red-light approach benchmark
-python3 run_benchmark.py red_light_results.json 16.0 52.0
+### CLI Flags
+| Flag | Values / Default | Description |
+| :--- | :--- | :--- |
+| `--map` | `mega10km` \| `waymo` (`mega10km`) | Procedural ~10+ km map or exported ScenarioNet Waymo HD scenes |
+| `--view` | `3d` \| `2d` (`3d`) | Initial camera view (`[V]` toggles live between 3D and 2D) |
+| `--seed` | integer (`1000`) | Deterministic road network or starting scenario index |
+| `--traffic-density` | `0.0` – `0.5` (`0.20`) | Ambient IDM+MOBIL traffic density (`mega10km` mode) |
+| `--qnx-host` | string (`192.168.122.62`) | QNX 8.0 target IP address |
+| `--qnx-port` | integer (`9090`) | QNX 8.0 TCP server port |
+| `--profile` | `chill` \| `standard` \| `hurry` (`standard`) | QNX FSD driving profile |
+| `--noise` | flag | Enable seeded Gaussian radar noise & occlusion |
+| `--wet` | flag | Start on wet low-friction asphalt (`mu=0.55` vs `0.95`) |
+| `--scenarios-dir` | path (`assets/scenarios`) | Directory of exported ScenarioNet JSON scenes |
+| `--report-prefix` | string (`qnx_rust_scorecard`) | Prefix for exported `.json` and `.csv` scorecards |
+
+### Interactive Hotkeys (`3d` & `2d`)
+- **`V`**: Toggle live between **3D Chase-Cam** and **2D FSD Top-Down**
+- **`M`**: Open / Close **Interactive Full-Screen Navigation Map** (click any road to set **Point B**, scroll zoom, drag pan, double-click / `ENTER` / **Drive Here** to route Point A -> B; also opens by clicking the sidebar minimap)
+- **`C`**: Clear Point B arrival hold & resume continuous Free Cruise
+- **`G`**: Generate next ~10+ km map seed (or advance to next Waymo clip)
+- **`P`**: Cycle driving profile (`CHILL` -> `STANDARD` -> `HURRY`)
+- **`T`**: Spawn slow/braking traffic jam + roadside safety cones ahead
+- **`J`**: Spawn crossing jaywalker ahead
+- **`W`**: Toggle road surface (`DRY mu=0.95` <-> `WET mu=0.55`)
+- **`N`**: Toggle seeded Gaussian radar noise & occlusion
+- **`SPACE`**: Pause / Resume simulation
+- **`R`**: Export JSON & CSV telemetry scorecard immediately
+- **`ESC` / `Q`**: Close Interactive Map if open (`ESC`), or export scorecard and exit cleanly
+
+---
+
+## Verification Suite
+
+Build release binary and run asset, ScenarioNet Waymo, A* routing, latency, and live QNX closed-loop pro-driver accuracy tests:
+```bash
+cargo build --release && cargo test --release -- --nocapture
 ```
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
+```text
+helloworld/
+├── Makefile                        # Recursive QNX 8.0 build entry point
+├── common.mk                       # QNX SDP compiler & socket linker configuration
+├── helloworld.use                  # QNX binary usage metadata
+├── Cargo.toml                      # Native Bevy 3D simulator crate configuration
+├── include/                        # QNX C++ Safety Kernel headers (adas/, ipc/, sim/)
+├── src/                            # QNX C++ Safety Kernel implementation
+├── nto/                            # Compiled QNX binaries (x86_64 & aarch64)
+├── assets/
+│   ├── models/                     # Extracted MetaDrive glTF models (ferra, 130, lada, truck, pedestrian, bicycle, cone, lights)
+│   ├── textures/                   # Asphalt, grass, and sidewalk surface textures
+│   └── scenarios/                  # Self-contained exported Waymo ScenarioNet JSON scenes
+├── tools/
+│   └── export_scenarionet.py       # Offline ScenarioNet (.pkl) -> JSON map/track/light exporter
+├── rust_sim/
+│   ├── src/
+│   │   ├── lib.rs                  # Crate module exports
+│   │   ├── main.rs                 # Bevy App entrypoint & CLI parsing
+│   │   ├── config.rs               # CLI parser (--map, --view, --profile, --wet)
+│   │   ├── coordinate_mapper.rs    # Frame projections, BSM zones & RNG
+│   │   ├── road_network.rs         # ~10+ km MegaMapGenerator, Waymo HD builder, Frenet & A*
+│   │   ├── scenario_loader.rs      # ScenarioNet JSON loader & track interpolator
+│   │   ├── physics.rs              # Dynamic bicycle model (80 ms lag, DRY/WET)
+│   │   ├── traffic.rs              # Signals, IDM+MOBIL traffic, Waymo replay & cones
+│   │   ├── perception.rs           # 85 m obstacle/VRU/stop-line scanner
+│   │   ├── qnx_client.rs           # TCP_NODELAY client, p50/p95 RTT & watchdog
+│   │   ├── recorder.rs             # Telemetry stats & JSON/CSV export
+│   │   ├── simulation.rs           # Headless-testable closed-loop SimWorld
+│   │   ├── map_overlay.rs          # Interactive map viewport projection & A* preview math
+│   │   ├── render_setup.rs         # Bevy Core i3/Intel HD setup (Msaa::Off, no shadows, fog)
+│   │   ├── scene_3d.rs             # Real glTF actors, chunked 3D roads, FSD ribbon & cams
+│   │   └── ui_hud.rs               # bevy_egui telemetry HUD, minimap & [M] map UI
+│   └── tests/
+│       └── integration_tests.rs    # Assets, Waymo, MegaMap, perf & live QNX tests
+├── launch_qnx_autonomous_car.sh    # QNX VM + Bevy 3D unified launcher
+└── README.md
 ```
-neutrino-adas/
-├── Makefile                        # Top-level recursive QNX makefile
-├── common.mk                       # QNX SDP compiler flags and library paths
-├── include/                        # Modular C++ ADAS & IPC Headers
-│   ├── adas/
-│   │   ├── Types.hpp               # VehicleState, Obstacle, DriveMode & AdasOutput
-│   │   ├── IPerceptionSensor.hpp   # Abstract sensor interfaces (IForwardScanner, IBlindSpotScanner)
-│   │   ├── ForwardRadar.hpp        # Forward corridor detection & TTC calculation
-│   │   ├── BlindSpotMonitor.hpp    # Dual side-mirror blind-spot radar zones
-│   │   ├── LongitudinalController.hpp # AEB emergency stop, ACC & kinematic stopping
-│   │   ├── LateralController.hpp   # Stanley lateral tracking & lane change state machine
-│   │   ├── SignalActuatorManager.hpp # 3 Hz turn signals, hazards, horn & brake lights
-│   │   └── QnxAdasController.hpp   # Central safety kernel composition orchestrator
-│   ├── ipc/
-│   │   ├── TelemetryCodec.hpp      # Zero-overhead newline-delimited JSON parser/generator
-│   │   └── QnxTcpServer.hpp        # RAII POSIX TCP socket server on port 9090
-│   └── sim/
-│       └── ConsoleSelfTest.hpp     # Standalone terminal verification test harness
-├── src/                            # Modular C++ ADAS Implementations
-│   ├── main.cpp                    # CLI entrypoint (--server / -s / --port / terminal test)
-│   ├── Types.cpp                   # Mode stringification and utility methods
-│   ├── ForwardRadar.cpp            # Forward LiDAR/radar scanning implementation
-│   ├── BlindSpotMonitor.cpp        # Dual side-mirror radar scanning implementation
-│   ├── LongitudinalController.cpp  # AEB / ACC / Cruising control laws
-│   ├── LateralController.cpp       # Nonlinear Stanley tracking & BSM safety interlock
-│   ├── SignalActuatorManager.cpp   # Actuator clocks, hazard overrides & timers
-│   ├── QnxAdasController.cpp       # Real-time L3 ADAS safety kernel orchestrator
-│   ├── TelemetryCodec.cpp          # High-performance wire protocol serialization
-│   ├── QnxTcpServer.cpp            # Multi-client TCP event loop & session handler
-│   └── ConsoleSelfTest.cpp         # 120-step verification scenario with cut-in hazard
-├── helloworld.use                  # QNX binary metadata & CLI documentation
-├── bridge/                         # Modular Rust Desktop Host & IPC Bridge
-│   └── src/
-│       ├── main.rs                 # Bridge daemon entrypoint & process manager
-│       ├── config.rs               # BridgeConfig struct (ports, host IP, env overrides)
-│       ├── asset_server.rs         # Static HTTP asset server (tiny_http, CORS headers)
-│       ├── ws_bridge.rs            # 60 Hz WebSocket <-> QNX TCP bridge (TCP_NODELAY)
-│       └── window_launcher.rs      # Chrome/Chromium WebGPU application window launcher
-├── Cargo.toml                      # Rust dependencies & compilation profile
-├── launch_qnx_autonomous_car.sh    # Unified launcher script
-├── run_benchmark.py                # Automated Chrome DevTools Protocol test runner
-├── baseline_metrics.json           # Recorded baseline benchmark data (pre-optimization)
-├── test_fix1_metrics.json          # Post-Fix 1 benchmark data (Stanley controller)
-├── test_fix2_red_approach.json     # Post-Fix 2 benchmark data (Red-light stopping)
-├── test_fix2_full_route.json       # Full corridor regression verification dataset
-├── nto/                            # QNX architecture target directories (x86_64 / aarch64)
-└── slop-newyork/                   # WebGPU 3D Manhattan digital twin & simulation
-    ├── index.html                  # Simulation viewport & glassmorphism HUD overlay
-    ├── js/
-    │   ├── adas/                   # Modular ES6 Autonomous Driving Frontend Modules
-    │   │   ├── QnxTelemetryClient.js # WebSocket client to IPC bridge with auto-reconnect
-    │   │   ├── PerceptionScanner.js  # Traffic/bus/pedestrian radar & red-light stop lines
-    │   │   ├── SideMirrorRenderer.js # Picture-in-picture dual mirror renderer & BSM alert
-    │   │   ├── AdasHudView.js        # Glassmorphism HUD DOM & mirror telemetry view
-    │   │   └── HornAudioEngine.js    # Web Audio API dual-tone automotive horn synthesis
-    │   ├── autonomous-driver.js    # AutonomousDriver thin OOP orchestrator
-    │   ├── driving-metrics.js      # 60 FPS 5-metric instrumentation engine
-    │   ├── main.js                 # Three.js animation loop & system coordinator
-    │   ├── city-config.js          # Manhattan road network geometry & signal timing
-    │   ├── road-network.js         # Street graph, lanes, crosswalks & spatial index
-    │   ├── traffic.js              # Ambient dynamic traffic simulation
-    │   └── controllers.js          # Vehicle dynamic physics & keyboard inputs
-    └── css/                        # Responsive styles & local typography
-```
-
----
-
-## 🤝 Acknowledgements & Credits
-
-This project builds upon phenomenal open-source engineering:
-
-* **[Mr.doob (Ricardo Cabello)](https://github.com/mrdoob)**: Creator of [Three.js](https://threejs.org/) and author of the breathtaking **[Slop New York](https://github.com/mrdoob/slop-newyork)** procedural WebGPU simulation that serves as our 3D digital twin.
-* **[BlackBerry QNX](https://blackberry.qnx.com)**: For the rock-solid, POSIX-compliant **QNX Neutrino RTOS 8.0** microkernel powering automotive safety worldwide.
-* **The Rust Community**: For asynchronous networking primitives enabling microsecond-level IPC bridge performance.
-
----
-
-## 📄 License
-
-This repository is licensed under the **MIT License**. See [LICENSE](LICENSE) for full details.  
-Third-party simulation assets and 3D models retain their respective licenses under `slop-newyork/`.
