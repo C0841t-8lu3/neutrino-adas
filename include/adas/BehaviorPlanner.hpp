@@ -28,13 +28,11 @@ public:
     const AdasConfig& getConfig() const { return config_; }
 
     /**
-     * Executes human-like high-level urban driving behavior decisions:
-     * - Route-Aware Pre-Turn Lane Selection (within 90m of turn)
-     * - Proactive Overtake & Stopped-Blocker Escape (>2.5s blocked)
-     * - Lateral "Nudge" Clearance (±0.45m in-lane bias away from hazards)
-     * - Predictive Cornering & Intersection Creep
-     *
-     * Zero heap allocations in 60 Hz hot path.
+     * Pro-Driver urban/highway decision planner (zero heap allocations in hot loop):
+     * - Route-aware pre-turn lane selection (20m - 95m ahead)
+     * - Proactive overtaking only when BSM (-12..+4m) AND adjacent forward gap (>28m) are clear
+     * - Smooth 1.5s advance blinker + auto-cancel on lane centering
+     * - Predictive cornering speed cap (a_lat_max ~ 2.2 m/s^2)
      */
     BehaviorDecision plan(
         const VehicleState& ego,
@@ -49,11 +47,19 @@ public:
     float getCurrentNudge() const { return current_nudge_; }
 
 private:
+    bool isAdjacentLaneForwardClear(
+        const VehicleState& ego,
+        const std::vector<Obstacle>& obstacles,
+        int direction,
+        float min_forward_gap_m = 28.0f
+    ) const;
+
     AdasConfig config_;
     int desired_lane_ = 1;
     int pending_lane_ = 1;
     int lane_change_dir_ = 0;
     float lane_change_prep_timer_ = 0.0f;
+    float lane_change_exec_timer_ = 0.0f;
     bool lane_change_in_progress_ = false;
     float blocked_timer_ = 0.0f;
     float current_nudge_ = 0.0f;
