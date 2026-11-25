@@ -27,19 +27,20 @@ ForwardScanResult ForwardRadar::scan(const VehicleState& ego, const std::vector<
 
         if (fwd < 0.6f || fwd > 85.0f) continue;
 
-        // 1. Path-Aware Obstacle Filtering
-        // When route is active, calculate Frenet lateral offset relative to curved path arc:
-        // offset ~ 0.5 * curvature * fwd^2
+        // 1. Exact Curved-Route Corridor Projection
+        // Compute road lateral offset at forward range `fwd` along curved path arc.
         float lat_lane_curve = 0.0f;
-        if (ego.has_route && std::abs(ego.path_curvature) > 0.001f) {
+        if (ego.has_route && std::abs(ego.path_curvature) > 0.002f) {
+            lat_lane_curve = (1.0f - std::cos(ego.path_curvature * fwd)) / ego.path_curvature;
+        } else if (ego.has_route && std::abs(ego.path_curvature) > 0.0005f) {
             lat_lane_curve = 0.5f * ego.path_curvature * fwd * fwd;
         }
         float lat_rel = lat - lat_lane_curve;
 
-        // 2. Handle Stop Line Barriers (Type 3)
+        // 2. Red/Yellow Stop Line Barriers (Type 3)
         if (obs.type == 3) {
-            if (std::abs(lat) < 3.2f) {
-                float dist = fwd - 2.2f; // Bumper distance to stop line
+            if (std::abs(lat_rel) < 2.6f || std::abs(lat) < 2.6f) {
+                float dist = fwd - 2.2f; // Front bumper to painted stop bar
                 if (dist < res.lead_distance) {
                     res.lead_distance = std::max(0.1f, dist);
                     res.lead_rel_speed = -ego.speed;
@@ -52,19 +53,19 @@ ForwardScanResult ForwardRadar::scan(const VehicleState& ego, const std::vector<
             continue;
         }
 
-        // 3. Sidewalk Pedestrian Filter (Type 2)
-        // Pedestrians walking normally on the sidewalk (|lat| > 1.4m and not moving laterally toward road)
-        // must NEVER trigger AEB. Only trigger when actually inside drivable corridor (|lat| <= 1.35m)
-        // OR actively crossing into ego lane (|lat| < 2.6m and moving toward lane center).
+        // 3. Pedestrian / Cyclist Corridor & Convergence Filter (Type 2)
+        // Sidewalk pedestrians not moving toward ego lane are strictly ignored;
+        // pedestrians actively crossing toward ego lane (|lat_rel| < 4.8m, |v_lat| > 0.5m/s)
+        // trigger early predictive slowing & AEB before stepping directly onto bumper.
         if (obs.type == 2) {
             float v_lat = obs.vx * cosH - obs.vz * sinH;
-            bool moving_toward_center = (lat_rel > 0.0f && (v_lat < -0.20f || obs.speed < -0.20f)) ||
-                                        (lat_rel < 0.0f && (v_lat > 0.20f || obs.speed > 0.20f));
+            bool moving_toward_center = (lat_rel > 0.0f && v_lat < -0.50f) ||
+                                        (lat_rel < 0.0f && v_lat > 0.50f);
             bool ped_in_corridor = (std::abs(lat_rel) <= 1.35f);
-            bool ped_crossing = (std::abs(lat_rel) < 2.6f && moving_toward_center);
+            bool ped_crossing = (std::abs(lat_rel) < 4.8f && moving_toward_center);
 
             if (ped_in_corridor || ped_crossing) {
-                float dist = fwd - 1.0f - 2.2f;
+                float dist = fwd - 0.8f - 2.2f;
                 if (dist < res.lead_distance) {
                     res.lead_distance = std::max(0.1f, dist);
                     res.lead_rel_speed = obs.speed - ego.speed;
@@ -77,13 +78,11 @@ ForwardScanResult ForwardRadar::scan(const VehicleState& ego, const std::vector<
             continue;
         }
 
-        // 4. Vehicles and Buses (Type 0, 1)
-        // Tighten active lane collision half-width to +-1.45m (+ vehicle half-width)
-        // Reject parked curb cars, adjacent-lane cars, and oncoming vehicles in opposite lanes.
-        float max_half_width = 1.45f + (obs.width * 0.5f);
-        if (std::abs(lat_rel) <= max_half_width) {
-            // Reject oncoming traffic in opposite lane on two-way street
-            if (obs.speed < -2.0f && ego.speed > 2.0f && lat_rel < -1.6f) {
+        // 4. Pro-Driver Tight Vehicle Corridor (Type 0, 1)
+        // Strictly reject adjacent-lane vehicles even around arches using 1.30m half-width.
+        if (std::abs(lat_rel) <= 1.30f) {
+            // Reject oncoming vehicles across narrow road dividers
+            if (obs.speed < -2.0f && ego.speed > 1.0f && lat_rel < -1.05f) {
                 continue;
             }
 
