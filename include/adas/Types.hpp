@@ -93,15 +93,18 @@ struct BlindSpotResult {
 // Tunable ADAS Configuration Parameters
 struct AdasConfig {
     float target_speed_mps = 14.0f;      // 50 km/h (~31 mph)
-    float min_safe_dist = 6.5f;          // meters
-    float time_headway = 1.3f;           // seconds (CHILL: 1.8s, STANDARD: 1.3s, HURRY: 1.0s)
+    float wheelbase_m = 2.75f;           // Vehicle wheelbase L for Ackermann feedforward
+    float min_safe_dist = 7.5f;          // IDM standstill spacing s0 (meters)
+    float time_headway = 1.6f;           // IDM time headway T (CHILL: 2.0s, STANDARD: 1.6s, HURRY: 1.25s)
     float max_accel = 2.5f;              // m/s^2 (CHILL: 1.8, STANDARD: 2.5, HURRY: 3.2)
-    float max_service_brake = 3.5f;      // m/s^2 (CHILL: 2.8, STANDARD: 3.5, HURRY: 4.2)
+    float idm_b_comfort = 2.0f;          // IDM comfortable deceleration (m/s^2)
+    float max_service_brake = 3.8f;      // m/s^2 (CHILL: 3.0, STANDARD: 3.8, HURRY: 4.5)
     float emergency_brake_accel = 8.5f;  // m/s^2
     float max_jerk = 2.8f;               // m/s^3 (CHILL: 2.2, STANDARD: 2.8, HURRY: 3.5)
-    float max_steer_rate = 1.6f;         // rad/s steering rate limit
-    float stanley_k_psi = 1.20f;
-    float stanley_k_e = 0.75f;
+    float max_steer_rate = 1.8f;         // rad/s steering rate limit
+    float stanley_k_psi = 1.25f;
+    float stanley_k_e = 1.95f;
+    float stanley_k_d = 0.25f;           // Lateral error rate damping gain
     float stanley_steer_clamp = 0.65f;
     DriveProfile profile = DriveProfile::STANDARD;
 
@@ -109,22 +112,28 @@ struct AdasConfig {
         profile = p;
         switch (p) {
             case DriveProfile::CHILL:
-                time_headway = 1.8f;
+                min_safe_dist = 8.5f;
+                time_headway = 2.0f;
                 max_accel = 1.8f;
-                max_service_brake = 2.8f;
+                idm_b_comfort = 1.8f;
+                max_service_brake = 3.0f;
                 max_jerk = 2.2f;
                 break;
             case DriveProfile::HURRY:
-                time_headway = 1.0f;
+                min_safe_dist = 6.5f;
+                time_headway = 1.25f;
                 max_accel = 3.2f;
-                max_service_brake = 4.2f;
+                idm_b_comfort = 2.3f;
+                max_service_brake = 4.5f;
                 max_jerk = 3.5f;
                 break;
             case DriveProfile::STANDARD:
             default:
-                time_headway = 1.3f;
+                min_safe_dist = 7.5f;
+                time_headway = 1.6f;
                 max_accel = 2.5f;
-                max_service_brake = 3.5f;
+                idm_b_comfort = 2.0f;
+                max_service_brake = 3.8f;
                 max_jerk = 2.8f;
                 break;
         }
