@@ -12,20 +12,23 @@ BlindSpotResult BlindSpotMonitor::scan(const VehicleState& ego, const std::vecto
     float cosH = std::cos(ego.heading);
 
     for (const auto& obs : obstacles) {
+        if (obs.type == 3) continue; // Ignore virtual stop lines
+
         float dx = obs.x - ego.x;
         float dz = obs.z - ego.z;
 
         float fwd = dx * sinH + dz * cosH;
         float lat = dx * cosH - dz * sinH;
 
-        // Blind-spot zone: -8.5m behind up to +3.0m beside
-        if (fwd >= -8.5f && fwd <= 3.0f) {
-            // Left mirror blind spot zone (-4.8m to -1.3m)
-            if (lat <= -1.3f && lat >= -4.8f) {
+        float lat_curve = ego.has_route ? (0.5f * ego.path_curvature * fwd * fwd) : 0.0f;
+        float lat_rel = lat - lat_curve;
+
+        // Pro-Driver BSM coverage: -12.0m rear approach up to +4.0m front fender
+        if (fwd >= -12.0f && fwd <= 4.0f) {
+            if (lat_rel <= -1.3f && lat_rel >= -4.8f) {
                 res.left_bsm = true;
             }
-            // Right mirror blind spot zone (+1.3m to +4.8m)
-            if (lat >= 1.3f && lat <= 4.8f) {
+            if (lat_rel >= 1.3f && lat_rel <= 4.8f) {
                 res.right_bsm = true;
             }
         }
