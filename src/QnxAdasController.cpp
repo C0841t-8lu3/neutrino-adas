@@ -103,8 +103,9 @@ AdasOutput QnxAdasController::step(const VehicleState& ego, const std::vector<Ob
     if (lane_change_dir == 0 && lat.lane_change_active) {
         lane_change_dir = (lat.desired_lane < ego.current_lane) ? -1 : ((lat.desired_lane > ego.current_lane) ? 1 : 0);
     }
-    // Cancel lane change signal if within 0.35m of target lane center
-    if (lat.lane_change_active && std::abs(lat.lateral_error) <= 0.35f && ego.current_lane == lat.desired_lane) {
+    // Cancel lane change signal only once transition has finished centering cleanly
+    if (!lat.lane_change_active && !plan.lane_change_blinker &&
+        std::abs(lat.lateral_error) <= 0.25f && ego.current_lane == lat.desired_lane) {
         lane_change_sig_active = false;
         lane_change_dir = 0;
     }
