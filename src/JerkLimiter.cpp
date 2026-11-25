@@ -38,6 +38,14 @@ void JerkLimiter::process(
         return;
     }
 
+    if (mode == DriveMode::STOPPED) {
+        out_throttle = 0.0f;
+        out_brake = raw_brake;
+        current_accel_ = -0.8f; // Light pedal hold allows brisk release on green light
+        out_steer = current_steer_;
+        return;
+    }
+
     // If transitioning out of AEB emergency braking:
     if (current_accel_ < -config_.max_service_brake) {
         if (raw_brake <= 0.01f) {
@@ -47,12 +55,13 @@ void JerkLimiter::process(
         }
     }
 
-    // 2. Longitudinal S-Curve Jerk Limiting
+    // 2. Longitudinal S-Curve Jerk Limiting (physical emergency_brake_accel brake scale)
+    float brake_scale = std::max(config_.max_service_brake, config_.emergency_brake_accel);
     float target_accel = 0.0f;
     if (raw_throttle > 0.0f) {
         target_accel = raw_throttle * config_.max_accel;
     } else if (raw_brake > 0.0f) {
-        target_accel = -raw_brake * config_.max_service_brake;
+        target_accel = -std::min(config_.max_service_brake, raw_brake * brake_scale);
     }
 
     float max_jerk = (config_.max_jerk > 0.0f) ? config_.max_jerk : 2.8f;
@@ -68,13 +77,13 @@ void JerkLimiter::process(
         current_accel_ = 0.0f;
     }
 
-    // Translate smoothed acceleration back into throttle / service brake commands
+    // Translate smoothed acceleration back into throttle / normalized brake pedal commands
     if (current_accel_ >= 0.0f) {
         out_throttle = (config_.max_accel > 0.0f) ? std::min(1.0f, current_accel_ / config_.max_accel) : 0.0f;
         out_brake = 0.0f;
     } else {
         out_throttle = 0.0f;
-        out_brake = (config_.max_service_brake > 0.0f) ? std::min(1.0f, -current_accel_ / config_.max_service_brake) : 0.0f;
+        out_brake = (brake_scale > 0.0f) ? std::min(1.0f, -current_accel_ / brake_scale) : 0.0f;
     }
 
     // 3. Lateral Steering Rate Smoothing
