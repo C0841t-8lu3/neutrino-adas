@@ -82,9 +82,9 @@ void QnxTcpServer::handleClient(int client_sock) {
     }
 #endif
 
-    char buffer[4096];
+    char buffer[8192];
     std::string line_buffer;
-    line_buffer.reserve(4096);
+    line_buffer.reserve(8192);
 
     // Reset controller state for new client connection
     controller_.reset();
