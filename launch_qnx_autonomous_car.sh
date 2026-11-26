@@ -110,4 +110,5 @@ echo -e "\033[1;32m[OK]\033[0m Native Bevy binary ready."
 # 3. Launch Native Bevy 3D Simulator <-> QNX 8.0 Safety Kernel
 # ------------------------------------------------------------------------------
 echo -e "\n\033[1;33m[3/3] Launching Native Bevy 3D QNX ADAS Simulator...\033[0m"
+export BEVY_ASSET_ROOT="$PROJECT_DIR"
 exec "$RUST_BIN" "$@"

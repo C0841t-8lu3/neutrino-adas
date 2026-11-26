@@ -4,6 +4,45 @@ use crate::simulation::SimWorld;
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::prelude::*;
 use bevy::window::{PresentMode, WindowResolution};
+use std::path::PathBuf;
+
+/// Resolve the repository `assets/` directory cleanly whether invoked from workspace root,
+/// `cargo run`, or directly as `target/release/qnx_rust_sim` from another directory.
+pub fn resolve_assets_dir() -> String {
+    if let Ok(root) = std::env::var("BEVY_ASSET_ROOT") {
+        let cand = PathBuf::from(root).join("assets");
+        if cand.join("models").is_dir() {
+            return cand
+                .canonicalize()
+                .unwrap_or(cand)
+                .to_string_lossy()
+                .into_owned();
+        }
+    }
+    if let Ok(cwd) = std::env::current_dir() {
+        let cand = cwd.join("assets");
+        if cand.join("models").is_dir() {
+            return cand
+                .canonicalize()
+                .unwrap_or(cand)
+                .to_string_lossy()
+                .into_owned();
+        }
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        for anc in exe.ancestors().skip(1) {
+            let cand = anc.join("assets");
+            if cand.join("models").is_dir() {
+                return cand
+                    .canonicalize()
+                    .unwrap_or(cand)
+                    .to_string_lossy()
+                    .into_owned();
+            }
+        }
+    }
+    "assets".to_string()
+}
 
 #[inline]
 pub fn to_bevy_pos(wx: f32, y: f32, wz: f32) -> Vec3 {
@@ -34,7 +73,7 @@ impl Plugin for RenderSetupPlugin {
                     ..default()
                 })
                 .set(AssetPlugin {
-                    file_path: "assets".to_string(),
+                    file_path: resolve_assets_dir(),
                     ..default()
                 }),
         )

@@ -136,6 +136,7 @@ impl Plugin for Scene3dPlugin {
                 (
                     configure_repeat_textures,
                     rebuild_static_world_on_map_change,
+                    sync_ego_lights_and_overlays,
                     sync_ego_and_fsd_ribbon,
                     sync_npcs_peds_cyclists,
                     sync_cones_and_signals,
@@ -853,9 +854,7 @@ fn rebuild_static_world_on_map_change(
     mut meshes: ResMut<Assets<Mesh>>,
     mut pools: ResMut<DynamicPools>,
     old_chunks: Query<Entity, With<RoadChunk>>,
-    old_ground_cam: Query<&Transform, (With<GroundFollower>, Without<RoadChunk>)>,
 ) {
-    let _ = old_ground_cam;
     let world = &world_res.0;
     if pools.loaded_map_generation == world.map_generation {
         return;
@@ -991,40 +990,18 @@ fn spawn_npc_vehicle_gltf(
         .id()
 }
 
-fn sync_ego_and_fsd_ribbon(
+fn sync_ego_lights_and_overlays(
     time: Res<Time>,
     world_res: Res<SimWorldRes>,
-    loaded: Res<LoadedAssets>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut pools: ResMut<DynamicPools>,
-    mut q_ego: Query<&mut Transform, (With<EgoRoot>, Without<EgoWheel>, Without<StopBarEntity>, Without<GoalBeaconEntity>)>,
-    mut q_wheels: Query<(&EgoWheel, &mut Transform), (Without<EgoRoot>, Without<StopBarEntity>, Without<GoalBeaconEntity>)>,
     mut q_lights: ParamSet<(
         Query<&mut Visibility, With<EgoBrakeLight>>,
         Query<(&EgoTurnSignal, &mut Visibility)>,
         Query<&mut Visibility, With<EgoOverlay2D>>,
         Query<(&EgoBsmArc, &mut Visibility)>,
     )>,
-    mut q_stop: Query<(&mut Transform, &mut Visibility), (With<StopBarEntity>, Without<EgoRoot>, Without<EgoWheel>, Without<GoalBeaconEntity>)>,
-    mut q_goal: Query<(&mut Transform, &mut Visibility), (With<GoalBeaconEntity>, Without<EgoRoot>, Without<EgoWheel>, Without<StopBarEntity>)>,
 ) {
     let world = &world_res.0;
-    let dt = time.delta_secs().min(0.05);
     let now_s = time.elapsed_secs_f64();
-    let ex = world.ego.x;
-    let ez = world.ego.z;
-
-    if let Ok(mut tf) = q_ego.get_single_mut() {
-        tf.translation = to_bevy_pos(ex, 0.0, ez);
-        tf.rotation = Quat::from_rotation_y(-world.ego.heading);
-    }
-    pools.wheel_spin_rad += (world.ego.speed / 0.313) * dt;
-    for (ew, mut wtf) in &mut q_wheels {
-        let steer = if ew.is_front { -world.ego.steer_angle } else { 0.0 };
-        let roll = if ew.is_left { pools.wheel_spin_rad } else { -pools.wheel_spin_rad };
-        wtf.rotation = Quat::from_rotation_y(steer) * Quat::from_rotation_x(roll);
-    }
 
     let brake_vis = if world.last_adas.brake_lights || world.last_adas.brake > 0.08 || world.is_arrived_point_b() {
         Visibility::Visible
@@ -1060,6 +1037,37 @@ fn sync_ego_and_fsd_ribbon(
             world.last_adas.right_mirror_blind_spot
         };
         *v = if warn { Visibility::Visible } else { Visibility::Hidden };
+    }
+}
+
+fn sync_ego_and_fsd_ribbon(
+    time: Res<Time>,
+    world_res: Res<SimWorldRes>,
+    loaded: Res<LoadedAssets>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut pools: ResMut<DynamicPools>,
+    mut q_entities: ParamSet<(
+        Query<&mut Transform, With<EgoRoot>>,
+        Query<(&EgoWheel, &mut Transform)>,
+        Query<(&mut Transform, &mut Visibility), With<StopBarEntity>>,
+        Query<(&mut Transform, &mut Visibility), With<GoalBeaconEntity>>,
+    )>,
+) {
+    let world = &world_res.0;
+    let dt = time.delta_secs().min(0.05);
+    let ex = world.ego.x;
+    let ez = world.ego.z;
+
+    if let Ok(mut tf) = q_entities.p0().get_single_mut() {
+        tf.translation = to_bevy_pos(ex, 0.0, ez);
+        tf.rotation = Quat::from_rotation_y(-world.ego.heading);
+    }
+    pools.wheel_spin_rad += (world.ego.speed / 0.313) * dt;
+    for (ew, mut wtf) in &mut q_entities.p1() {
+        let steer = if ew.is_front { -world.ego.steer_angle } else { 0.0 };
+        let roll = if ew.is_left { pools.wheel_spin_rad } else { -pools.wheel_spin_rad };
+        wtf.rotation = Quat::from_rotation_y(steer) * Quat::from_rotation_x(roll);
     }
 
     // Glowing 3D FSD Trajectory Ribbon
@@ -1121,7 +1129,7 @@ fn sync_ego_and_fsd_ribbon(
         }
     }
 
-    if let Ok((mut stf, mut svis)) = q_stop.get_single_mut() {
+    if let Ok((mut stf, mut svis)) = q_entities.p2().get_single_mut() {
         if let Some(ref bar) = world.perception.last_stop_line {
             let sig_h = world
                 .traffic
@@ -1140,7 +1148,7 @@ fn sync_ego_and_fsd_ribbon(
             *svis = Visibility::Hidden;
         }
     }
-    if let Ok((mut gtf, mut gvis)) = q_goal.get_single_mut() {
+    if let Ok((mut gtf, mut gvis)) = q_entities.p3().get_single_mut() {
         if let Some(ref p2p) = world.p2p {
             gtf.translation = to_bevy_pos(p2p.goal_world.0, 3.25, p2p.goal_world.1);
             *gvis = Visibility::Visible;

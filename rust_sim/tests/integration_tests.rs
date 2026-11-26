@@ -623,3 +623,56 @@ fn test_qnx_waymo_live_closed_loop_and_rollover() {
         sum.rms_lateral_error_m
     );
 }
+
+#[test]
+fn test_bevy_scene_ecs_and_asset_resolution() {
+    use bevy::prelude::*;
+    use qnx_rust_sim::config::ViewMode;
+    use qnx_rust_sim::render_setup::{resolve_assets_dir, MainDriveCamera, SimWorldRes};
+    use qnx_rust_sim::scene_3d::Scene3dPlugin;
+
+    let assets_dir = resolve_assets_dir();
+    let assets_path = Path::new(&assets_dir);
+    assert!(
+        assets_path.is_absolute(),
+        "resolve_assets_dir must return an absolute path so binaries outside repo root work: {assets_dir}"
+    );
+    assert!(assets_path.join("models/ferra/vehicle.gltf").is_file());
+    assert!(assets_path.join("textures/asphalt/diff_2k.png").is_file());
+
+    let mut cfg = SimConfig::default();
+    cfg.qnx_host = "127.0.0.1".to_string();
+    cfg.qnx_port = 19999; // Fast fail-stop without touching QNX lock
+    let world = SimWorld::new(cfg, true);
+
+    let mut app = App::new();
+    app.add_plugins((
+        MinimalPlugins,
+        AssetPlugin {
+            file_path: assets_dir,
+            ..default()
+        },
+        bevy::scene::ScenePlugin,
+    ))
+    .init_asset::<Image>()
+    .init_asset::<Mesh>()
+    .init_asset::<StandardMaterial>()
+    .init_asset::<bevy::gltf::Gltf>()
+    .insert_resource(SimWorldRes(world))
+    .add_plugins(Scene3dPlugin);
+
+    // Spawn MainDriveCamera needed by update_camera_system
+    app.world_mut()
+        .spawn((MainDriveCamera, Transform::IDENTITY));
+
+    // Step across 3D Mega10km, 2D Mega10km, and Waymo rollover to validate every ECS schedule & query
+    app.update();
+    app.world_mut().resource_mut::<SimWorldRes>().0.config.view = ViewMode::View2D;
+    app.update();
+    {
+        let mut sw = app.world_mut().resource_mut::<SimWorldRes>();
+        sw.0.config.map_mode = MapMode::Waymo;
+        sw.0.regenerate_new_map(0, false);
+    }
+    app.update();
+}
