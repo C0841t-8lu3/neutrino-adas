@@ -12,8 +12,9 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 QNX_VM_IP="${QNX_VM_IP:-192.168.122.62}"
 QNX_PORT="${QNX_PORT:-9090}"
 QEMU_DIR="/home/aauel/qnxprojects/targets/qemu-qnx800-x86_64-1"
-QNX_BINARY="$PROJECT_DIR/nto/x86_64/o/helloworld"
-RUST_BIN="$PROJECT_DIR/target/release/qnx_rust_sim"
+QNX_BINARY="$PROJECT_DIR/qnx-adas-os/nto/x86_64/o/helloworld"
+SIM_DIR="$PROJECT_DIR/adas-3d-sim"
+RUST_BIN="$SIM_DIR/target/release/qnx_rust_sim"
 
 # Fast-path help printout without touching QNX VM or opening Bevy window
 for arg in "$@"; do
@@ -72,7 +73,7 @@ if ! is_qnx_port_open; then
     fi
 
     if [ ! -f "$QNX_BINARY" ]; then
-        echo -e "\033[1;31m[ERROR] QNX binary not found at $QNX_BINARY. Run 'make' first.\033[0m"
+        echo -e "\033[1;31m[ERROR] QNX binary not found at $QNX_BINARY. Run 'cd qnx-adas-os && make' first.\033[0m"
         exit 1
     fi
     echo "Deploying and starting QNX ADAS Safety Kernel daemon on $QNX_VM_IP:$QNX_PORT..."
@@ -99,8 +100,8 @@ echo -e "\033[1;32m[OK]\033[0m QNX 8.0 ADAS Safety Kernel listening on $QNX_VM_I
 # 2. Ensure Native Bevy Release Simulator Binary Is Built
 # ------------------------------------------------------------------------------
 echo -e "\n\033[1;33m[2/3] Checking Native Bevy 3D Release Binary ($RUST_BIN)...\033[0m"
-cd "$PROJECT_DIR"
-if [ ! -x "$RUST_BIN" ] || [ -n "$(find "$PROJECT_DIR/rust_sim/src" "$PROJECT_DIR/Cargo.toml" -newer "$RUST_BIN" 2>/dev/null)" ]; then
+cd "$SIM_DIR"
+if [ ! -x "$RUST_BIN" ] || [ -n "$(find "$SIM_DIR/rust_sim/src" "$SIM_DIR/Cargo.toml" -newer "$RUST_BIN" 2>/dev/null)" ]; then
     echo "Building release binary via cargo build --release..."
     cargo build --release
 fi
@@ -110,5 +111,5 @@ echo -e "\033[1;32m[OK]\033[0m Native Bevy binary ready."
 # 3. Launch Native Bevy 3D Simulator <-> QNX 8.0 Safety Kernel
 # ------------------------------------------------------------------------------
 echo -e "\n\033[1;33m[3/3] Launching Native Bevy 3D QNX ADAS Simulator...\033[0m"
-export BEVY_ASSET_ROOT="$PROJECT_DIR"
+export BEVY_ASSET_ROOT="$SIM_DIR"
 exec "$RUST_BIN" "$@"

@@ -12,6 +12,8 @@ __pycache__/
 helloworld
 nto/aarch64/o-le/helloworld
 nto/x86_64/o/helloworld
+qnx-adas-os/nto/aarch64/o-le/helloworld
+qnx-adas-os/nto/x86_64/o/helloworld
 
 # Logs and scratch files
 *.log

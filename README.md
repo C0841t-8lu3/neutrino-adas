@@ -19,7 +19,7 @@ A native 60 FPS **Bevy `0.15` + `bevy_egui`** 3D autonomous driving simulator wi
 +-----------------------------------------+-----------------------------------------+
                                           | TCP_NODELAY (JSON line protocol)
 +-----------------------------------------v-----------------------------------------+
-|                   NATIVE BEVY 3D + BEVY_EGUI SIMULATOR (rust_sim/)                |
+|                   NATIVE BEVY 3D + BEVY_EGUI SIMULATOR (adas-3d-sim/)             |
 |  - SimConfig (config.rs): --map mega10km|waymo, --view 3d|2d, --profile, --wet    |
 |  - MegaMapGenerator / ScenarioLoader: ~10+ km loops & Waymo HD JSON maps          |
 |  - RenderSetupPlugin (render_setup.rs): Msaa::Off, no shadows, 220m linear fog    |
@@ -34,14 +34,14 @@ A native 60 FPS **Bevy `0.15` + `bevy_egui`** 3D autonomous driving simulator wi
 
 ## Build & Usage
 
-### 1. Build the QNX 8.0 C++ Safety Kernel
+### 1. Build the QNX 8.0 C++ Safety Kernel (`qnx-adas-os/`)
 ```bash
 source /home/aauel/qnx800/qnxsdp-env.sh
-make clean && make
+cd qnx-adas-os && make clean && make
 ```
-Produces `nto/x86_64/o/helloworld` and `nto/aarch64/o-le/helloworld` with `0` compiler warnings.
+Produces `qnx-adas-os/nto/x86_64/o/helloworld` and `qnx-adas-os/nto/aarch64/o-le/helloworld` with `0` compiler warnings.
 
-### 2. Launch the Bevy 3D Simulator
+### 2. Launch the Bevy 3D Simulator (`adas-3d-sim/`)
 ```bash
 # Default: 3D Chase-Cam on continuous ~10+ km road network (press [V] to toggle 3D <-> 2D)
 ./launch_qnx_autonomous_car.sh --view 3d --map mega10km
@@ -53,9 +53,10 @@ Produces `nto/x86_64/o/helloworld` and `nto/aarch64/o-le/helloworld` with `0` co
 ./launch_qnx_autonomous_car.sh --view 2d
 ```
 
-### Offline ScenarioNet Importer (`tools/export_scenarionet.py`)
-Any Waymo, nuScenes, or nuPlan ScenarioNet `.pkl` dataset can be converted once offline into self-contained JSON files under `assets/scenarios/`:
+### Offline ScenarioNet Importer (`adas-3d-sim/tools/export_scenarionet.py`)
+Any Waymo, nuScenes, or nuPlan ScenarioNet `.pkl` dataset can be converted once offline into self-contained JSON files under `adas-3d-sim/assets/scenarios/`:
 ```bash
+cd adas-3d-sim
 python3 tools/export_scenarionet.py --input-dir /path/to/scenarionet_pkls --output-dir assets/scenarios
 ```
 
@@ -94,6 +95,7 @@ python3 tools/export_scenarionet.py --input-dir /path/to/scenarionet_pkls --outp
 
 Build release binary and run asset, ScenarioNet Waymo, A* routing, latency, and live QNX closed-loop pro-driver accuracy tests:
 ```bash
+cd adas-3d-sim
 cargo build --release && cargo test --release -- --nocapture
 ```
 
@@ -103,39 +105,44 @@ cargo build --release && cargo test --release -- --nocapture
 
 ```text
 helloworld/
-├── Makefile                        # Recursive QNX 8.0 build entry point
-├── common.mk                       # QNX SDP compiler & socket linker configuration
-├── helloworld.use                  # QNX binary usage metadata
-├── Cargo.toml                      # Native Bevy 3D simulator crate configuration
-├── include/                        # QNX C++ Safety Kernel headers (adas/, ipc/, sim/)
-├── src/                            # QNX C++ Safety Kernel implementation
-├── nto/                            # Compiled QNX binaries (x86_64 & aarch64)
-├── assets/
-│   ├── models/                     # Extracted MetaDrive glTF models (ferra, 130, lada, truck, pedestrian, bicycle, cone, lights)
-│   ├── textures/                   # Asphalt, grass, and sidewalk surface textures
-│   └── scenarios/                  # Self-contained exported Waymo ScenarioNet JSON scenes
-├── tools/
-│   └── export_scenarionet.py       # Offline ScenarioNet (.pkl) -> JSON map/track/light exporter
-├── rust_sim/
-│   ├── src/
-│   │   ├── lib.rs                  # Crate module exports
-│   │   ├── main.rs                 # Bevy App entrypoint & CLI parsing
-│   │   ├── config.rs               # CLI parser (--map, --view, --profile, --wet)
-│   │   ├── coordinate_mapper.rs    # Frame projections, BSM zones & RNG
-│   │   ├── road_network.rs         # ~10+ km MegaMapGenerator, Waymo HD builder, Frenet & A*
-│   │   ├── scenario_loader.rs      # ScenarioNet JSON loader & track interpolator
-│   │   ├── physics.rs              # Dynamic bicycle model (80 ms lag, DRY/WET)
-│   │   ├── traffic.rs              # Signals, IDM+MOBIL traffic, Waymo replay & cones
-│   │   ├── perception.rs           # 85 m obstacle/VRU/stop-line scanner
-│   │   ├── qnx_client.rs           # TCP_NODELAY client, p50/p95 RTT & watchdog
-│   │   ├── recorder.rs             # Telemetry stats & JSON/CSV export
-│   │   ├── simulation.rs           # Headless-testable closed-loop SimWorld
-│   │   ├── map_overlay.rs          # Interactive map viewport projection & A* preview math
-│   │   ├── render_setup.rs         # Bevy Core i3/Intel HD setup (Msaa::Off, no shadows, fog)
-│   │   ├── scene_3d.rs             # Real glTF actors, chunked 3D roads, FSD ribbon & cams
-│   │   └── ui_hud.rs               # bevy_egui telemetry HUD, minimap & [M] map UI
-│   └── tests/
-│       └── integration_tests.rs    # Assets, Waymo, MegaMap, perf & live QNX tests
-├── launch_qnx_autonomous_car.sh    # QNX VM + Bevy 3D unified launcher
+├── qnx-adas-os/                        # QNX 8.0 Neutrino C++ ADAS Safety Kernel
+│   ├── Makefile                        # Recursive QNX 8.0 build entry point
+│   ├── common.mk                       # QNX SDP compiler & socket linker configuration
+│   ├── helloworld.use                  # QNX binary usage metadata
+│   ├── include/                        # QNX C++ Safety Kernel headers (adas/, ipc/, sim/)
+│   ├── src/                            # QNX C++ Safety Kernel implementation
+│   └── nto/                            # Compiled QNX binaries (x86_64 & aarch64)
+├── adas-3d-sim/                        # Native Bevy 3D Autonomous Driving Simulator
+│   ├── Cargo.toml                      # Native Bevy 3D simulator crate configuration
+│   ├── Cargo.lock                      # Locked Rust dependency graph
+│   ├── assets/
+│   │   ├── models/                     # Extracted MetaDrive glTF models (ferra, 130, lada, truck, pedestrian, bicycle, cone, lights)
+│   │   ├── textures/                   # Asphalt, grass, and sidewalk surface textures
+│   │   └── scenarios/                  # Self-contained exported Waymo ScenarioNet JSON scenes
+│   ├── tools/
+│   │   └── export_scenarionet.py       # Offline ScenarioNet (.pkl) -> JSON map/track/light exporter
+│   └── rust_sim/
+│       ├── src/
+│       │   ├── lib.rs                  # Crate module exports
+│       │   ├── main.rs                 # Bevy App entrypoint & CLI parsing
+│       │   ├── config.rs               # CLI parser (--map, --view, --profile, --wet)
+│       │   ├── coordinate_mapper.rs    # Frame projections, BSM zones & RNG
+│       │   ├── road_network.rs         # ~10+ km MegaMapGenerator, Waymo HD builder, Frenet & A*
+│       │   ├── scenario_loader.rs      # ScenarioNet JSON loader & track interpolator
+│       │   ├── physics.rs              # Dynamic bicycle model (80 ms lag, DRY/WET)
+│       │   ├── traffic.rs              # Signals, IDM+MOBIL traffic, Waymo replay & cones
+│       │   ├── perception.rs           # 85 m obstacle/VRU/stop-line scanner
+│       │   ├── qnx_client.rs           # TCP_NODELAY client, p50/p95 RTT & watchdog
+│       │   ├── recorder.rs             # Telemetry stats & JSON/CSV export
+│       │   ├── simulation.rs           # Headless-testable closed-loop SimWorld
+│       │   ├── map_overlay.rs          # Interactive map viewport projection & A* preview math
+│       │   ├── render_setup.rs         # Bevy Core i3/Intel HD setup (Msaa::Off, no shadows, fog)
+│       │   ├── scene_3d.rs             # Real glTF actors, chunked 3D roads, FSD ribbon & cams
+│       │   └── ui_hud.rs               # bevy_egui telemetry HUD, minimap & [M] map UI
+│       └── tests/
+│           └── integration_tests.rs    # Assets, Waymo, MegaMap, perf & live QNX tests
+├── launch_qnx_autonomous_car.sh        # QNX VM + Bevy 3D unified launcher
+├── .gitignore
+├── LICENSE
 └── README.md
 ```

@@ -64,8 +64,16 @@ impl SimWorld {
 
         let (net, mut ego, active_edges, traffic, route_len_m) = match config.map_mode {
             MapMode::Waymo => {
-                let loaded = load_scenarios_from_dir(Path::new(&config.scenarios_dir))
-                    .unwrap_or_default();
+                let scenarios_path = {
+                    let configured = Path::new(&config.scenarios_dir);
+                    if configured.is_dir() || config.scenarios_dir != "assets/scenarios" {
+                        configured.to_path_buf()
+                    } else {
+                        std::path::PathBuf::from(crate::render_setup::resolve_assets_dir())
+                            .join("scenarios")
+                    }
+                };
+                let loaded = load_scenarios_from_dir(&scenarios_path).unwrap_or_default();
                 if loaded.is_empty() {
                     let net = MegaMapGenerator::generate(config.seed);
                     let start_eid = net.grand_tour_edges[0];
