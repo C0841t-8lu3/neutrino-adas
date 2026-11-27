@@ -1,0 +1,31 @@
+[package]
+name = "qnx_rust_sim"
+version = "0.3.0"
+edition = "2021"
+description = "Native 60 FPS Bevy 3D Autonomous Driving Simulator with MetaDrive glTF & Waymo ScenarioNet maps wired to QNX 8.0 C++ Safety Kernel"
+
+[lib]
+name = "qnx_rust_sim"
+path = "rust_sim/src/lib.rs"
+
+[[bin]]
+name = "qnx_rust_sim"
+path = "rust_sim/src/main.rs"
+
+[[test]]
+name = "integration_tests"
+path = "rust_sim/tests/integration_tests.rs"
+
+[dependencies]
+bevy = { version = "0.15", features = ["jpeg"] }
+bevy_egui = "0.33"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+
+[profile.dev.package."*"]
+opt-level = 2
